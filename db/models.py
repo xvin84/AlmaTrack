@@ -35,6 +35,8 @@ class User(Base):
     is_alumni: Mapped[bool] = mapped_column(Boolean, default=False)
     city: Mapped[str | None] = mapped_column(String(128))
     privacy_level: Mapped[int] = mapped_column(Integer, default=1)
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     last_active: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()

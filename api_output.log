@@ -1,0 +1,20 @@
+warning: The `tool.uv.dev-dependencies` field (used in `pyproject.toml`) is deprecated and will be removed in a future release; use `dependency-groups.dev` instead
+INFO:     Started server process [135376]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:48650 - "GET /api/stats/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48656 - "GET /api/admin/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49892 - "GET /api/stats/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49898 - "GET /api/admin/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33054 - "GET /api/stats/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33066 - "GET /api/admin/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33078 - "POST /api/admin/approve/1050158571 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33080 - "GET /api/stats/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33090 - "GET /api/admin/pending HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45564 - "GET /api/stats/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45572 - "GET /api/admin/pending HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [135376]

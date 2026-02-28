@@ -43,16 +43,32 @@ async def main() -> None:
     )
     dp = Dispatcher(storage=storage)
 
+    # --- Register middlewares ---
+    from bot.middlewares.auth import PendingUserMiddleware
+    pending_mw = PendingUserMiddleware()
+    dp.message.middleware(pending_mw)
+    dp.callback_query.middleware(pending_mw)
+
     # --- Register routers ---
     for router in all_routers:
         dp.include_router(router)
 
     # --- DB init ---
-    # TODO: initialise database on startup
-    # from db.base import init_db
-    # await init_db()
+    # initialise database on startup
+    from db.base import init_db
+    await init_db()
+
+    # --- Setup Bot Commands ---
+    from aiogram.types import BotCommand
+    commands = [
+        BotCommand(command="start", description="🏠 Главное меню / Регистрация"),
+        BotCommand(command="stats", description="📊 Статистика факультета"),
+        BotCommand(command="help", description="❓ Помощь"),
+    ]
+    await bot.set_my_commands(commands)
 
     logger.info("Starting AlmaTrack bot…")
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 
 

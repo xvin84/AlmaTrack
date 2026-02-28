@@ -16,6 +16,24 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from db.base import get_session
+from db.crud import add_xp, award_badge, create_employment, create_user, get_user
+
+def normalize_text(val: str) -> str:
+    if not val:
+        return val
+    val = val.strip().title()
+    mapping = {
+        "Yandex": "Яндекс", "Яндекс": "Яндекс",
+        "Vk": "Vk", "Вконтакте": "Vk", "Vk.Com": "Vk", "Вк": "Vk",
+        "Тинькофф": "Т-Банк", "Tinkoff": "Т-Банк", "Тбанк": "Т-Банк", "Т Банк": "Т-Банк",
+        "Сбербанк": "Сбер", "Sber": "Сбер", "Сбер": "Сбер",
+        "Ростов": "Ростов-на-Дону", "Ростов-На-Дону": "Ростов-на-Дону",
+        "Питер": "Санкт-Петербург", "Спб": "Санкт-Петербург",
+        "Мск": "Москва"
+    }
+    return mapping.get(val, val)
+
 from bot.config import get_settings
 from bot.keyboards import (
     CancelEditCB,
@@ -101,6 +119,16 @@ async def _set_main(
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext) -> None:
+    async with get_session() as session:
+        user = await get_user(message.from_user.id, session)
+        if user:
+            await _delete(message.bot, message.chat.id, message.message_id)
+            if user.status == "pending":
+                await message.answer("⏳ <i>Твоя анкета находится на проверке у администратора.</i>", parse_mode="HTML")
+            else:
+                await message.answer("🏠 <b>Главное меню</b>", reply_markup=home_keyboard(), parse_mode="HTML")
+            return
+
     current_state = await state.get_state()
 
     if current_state and current_state.startswith("OnboardingFSM:"):
@@ -458,12 +486,13 @@ async def process_employment_status(
 async def process_company_name(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     is_editing = data.get("is_editing", False)
-    await state.update_data(company_name=message.text.strip())
+    val = normalize_text(message.text)
+    await state.update_data(company_name=val)
     await state.set_state(OnboardingFSM.work_city)
     await _delete(message.bot, message.chat.id, message.message_id)
     await _set_main(
         message.bot, message.chat.id, state,
-        f"✅ Компания: <b>{message.text.strip()}</b>\n\n"
+        f"✅ Компания: <b>{val}</b>\n\n"
         "🌆 Город?\n\n<i>Шаг 5 из 5</i>",
         work_city_keyboard(is_editing=is_editing),
     )
@@ -499,7 +528,8 @@ async def process_custom_city(message: Message, state: FSMContext) -> None:
     if not data.get("_awaiting_custom_city"):
         return
     is_editing = data.get("is_editing", False)
-    await state.update_data(work_city=message.text.strip(), _awaiting_custom_city=False)
+    val = normalize_text(message.text)
+    await state.update_data(work_city=val, _awaiting_custom_city=False)
     await _delete(message.bot, message.chat.id, message.message_id)
     if is_editing:
         await _show_confirm(message.bot, message.chat.id, state)
@@ -682,20 +712,63 @@ async def _finalize_onboarding(call: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     bot_msg_id = data.get("bot_msg_id")
 
-    # TODO: create user + employment in DB
-    # TODO: award XP + FIRST_STEP badge
+    user_id = call.from_user.id
+    full_name = call.from_user.full_name
+    username = call.from_user.username
+    
+    try:
+        async with get_session() as session:
+            from db.crud import get_user
+            existing_user = await get_user(user_id, session)
+            if existing_user:
+                await state.clear()
+                await _delete(call.bot, call.message.chat.id, bot_msg_id)
+                await call.message.answer("✅ Твоя анкета уже зарегистрирована в системе.")
+                return
+
+            # Create user
+            user = await create_user(
+                telegram_id=user_id,
+                full_name=full_name,
+                username=username,
+                faculty=data.get("faculty"),
+                enrollment_year=data.get("enrollment_year"),
+                graduation_year=data.get("graduation_year"),
+                is_alumni=(data.get("role") == "alumni"),
+                session=session
+            )
+
+            status = data.get("employment_status")
+            if status == "working":
+                await create_employment(
+                    user_id=user_id,
+                    company_name=data.get("company_name"),
+                    city=data.get("work_city"),
+                    work_format=data.get("work_format"),
+                    position_title=data.get("position_title"),
+                    position_level=data.get("position_level"),
+                    session=session
+                )
+                
+            # Award initial XP and badge
+            await add_xp(user_id, 50, session)
+            await award_badge(user_id, "FIRST_STEP", session)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).exception("Failed to create user during onboarding")
+        await call.answer("Произошла ошибка при сохранении данных", show_alert=True)
+        return
 
     await state.clear()
     await _delete(call.bot, call.message.chat.id, bot_msg_id)
 
     await call.message.answer(
-        f"{E.sparkles} <b>Добро пожаловать в AlmaTrack!</b>\n\n"
+        f"{E.sparkles} <b>Твоя анкета отправлена на проверку!</b>\n\n"
         "━━━━━━━━━━━━━━━━\n"
         f"{E.medal}  Бейдж <b>«Первый шаг»</b> получен!\n"
         f"{E.star}  <b>+50 XP</b>\n"
         "━━━━━━━━━━━━━━━━\n\n"
-        "Выбери раздел 👇",
-        reply_markup=home_keyboard(),
+        "⏳ <i>Ожидай одобрения администратором. Пока заявка проверяется, функционал бота ограничен.</i>",
         parse_mode="HTML",
     )
 

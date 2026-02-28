@@ -1,0 +1,23 @@
+warning: The `tool.uv.dev-dependencies` field (used in `pyproject.toml`) is deprecated and will be removed in a future release; use `dependency-groups.dev` instead
+ * Serving Flask app 'app'
+ * Debug mode: on
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.209:5000
+[33mPress CTRL+C to quit[0m
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 113-947-136
+2026-02-28 14:09:13,706  INFO      __main__  FSM storage: Redis (redis://localhost:6379/0)
+INFO:     Started server process [152386]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2026-02-28 14:09:13,971  INFO      __main__  Starting AlmaTrack bot…
+2026-02-28 14:09:13,971  INFO      aiogram.dispatcher  Start polling
+2026-02-28 14:09:14,035  INFO      aiogram.dispatcher  Run polling for bot @alma_track_bot id=8533659880 - 'AlmaTrack'
+ * Detected change in '/home/xvin/Projects/Hakaton/AlmaTrack/bot/handlers/start.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 831-469-628

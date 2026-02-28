@@ -1,0 +1,27 @@
+warning: The `tool.uv.dev-dependencies` field (used in `pyproject.toml`) is deprecated and will be removed in a future release; use `dependency-groups.dev` instead
+ * Serving Flask app 'app'
+ * Debug mode: on
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.209:5000
+[33mPress CTRL+C to quit[0m
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 335-485-387
+127.0.0.1 - - [28/Feb/2026 13:32:48] "[32mHEAD /dashboard HTTP/1.1[0m" 302 -
+ * Detected change in '/home/xvin/Projects/Hakaton/AlmaTrack/main.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 750-581-365
+192.168.1.209 - - [28/Feb/2026 13:52:57] "GET / HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 13:52:58] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 13:53:45] "[32mPOST /login HTTP/1.1[0m" 302 -
+192.168.1.209 - - [28/Feb/2026 13:53:46] "GET /dashboard HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 13:53:48] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 13:53:50] "GET /dashboard HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 13:56:52] "GET /dashboard HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 13:56:58] "[32mPOST /approve/1050158571 HTTP/1.1[0m" 302 -
+192.168.1.209 - - [28/Feb/2026 13:56:58] "GET /dashboard HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 13:58:07] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 13:58:08] "GET /dashboard HTTP/1.1" 200 -
