@@ -1,0 +1,34 @@
+[project]
+name = "almatrack"
+version = "0.1.0"
+description = "AlmaTrack — карьерный трекер для студентов"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiogram>=3.25.0",
+    "aiosqlite>=0.22.1",
+    "pydantic-settings>=2.13.1",
+    "redis>=7.2.1",
+    "sqlalchemy>=2.0.47",
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "flask>=3.0.0",
+    "httpx>=0.27.0",
+]
+
+[project.scripts]
+bot = "bot.main:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["bot", "core", "db"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "faker>=24.0.0",
+]
