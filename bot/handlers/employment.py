@@ -24,6 +24,13 @@ from bot.keyboards import (
 )
 from bot.states import UpdateEmploymentFSM
 
+from db.base import get_session
+from db.crud import get_user, has_current_employment, close_current_employment, create_employment
+from core.gamification import award_xp, check_and_award_badges
+import logging
+
+logger = logging.getLogger(__name__)
+
 router = Router(name="employment")
 
 FORMAT_LABELS = {"office": "Офис 🏢", "remote": "Удалёнка 🏠", "hybrid": "Гибрид 🔀"}
@@ -49,12 +56,16 @@ async def cmd_update_cb(call: CallbackQuery, state: FSMContext) -> None:
 
 
 async def _start_update(message: Message, state: FSMContext) -> None:
-    # TODO: check user exists in DB
-    # TODO: check if has current job
-    has_current_job = True  # placeholder
+    async with get_session() as session:
+        user = await get_user(message.from_user.id, session)
+        if not user:
+            await message.answer("❌ Сначала нужно пройти регистрацию: /start")
+            return
+            
+        has_job = await has_current_employment(message.from_user.id, session)
 
     await state.set_state(UpdateEmploymentFSM.confirm_end_current)
-    if has_current_job:
+    if has_job:
         await message.answer(
             "✏️ <b>Обновление места работы</b>\n\n"
             "Текущая запись будет закрыта. Продолжить?",
@@ -156,11 +167,44 @@ async def upd_final(call: CallbackQuery, callback_data: ConfirmCB, state: FSMCon
         await call.answer()
         return
 
-    # TODO: close current employment + create new in DB
-    # TODO: award XP for update
+    data = await state.get_data()
+    user_id = call.from_user.id
+    
+    try:
+        async with get_session() as session:
+            await close_current_employment(user_id, session)
+            
+            await create_employment(
+                user_id=user_id,
+                company_name=data["company_name"],
+                city=data.get("work_city"),
+                work_format=data.get("work_format"),
+                position_title=data["position_title"],
+                position_level=data.get("position_level"),
+                session=session
+            )
+            
+            xp, new_level = await award_xp(user_id, "update_job", session)
+            badges = await check_and_award_badges(user_id, session)
+            
+            await session.commit()
+            
+    except Exception as e:
+        logger.exception("Failed to update employment")
+        await call.answer("Ошибка сохранения данных", show_alert=True)
+        return
+
     await state.clear()
-    await call.message.edit_text(
-        "✅ <b>Данные о работе обновлены!</b>\n\n⭐ <b>+30 XP</b>",
-        parse_mode="HTML",
-    )
+    
+    msg = "✅ <b>Данные о работе обновлены!</b>\n\n"
+    if xp > 0:
+        msg += f"⭐ <b>+{xp} XP</b>\n"
+    if new_level is not None:
+        msg += f"🎉 <b>Уровень повышен: {new_level.name}!</b>\n"
+    if badges:
+        from core.gamification import BADGES
+        b_names = [BADGES.get(b, {}).get('name', b) for b in badges]
+        msg += f"🏅 <b>Новые бейджи: {', '.join(b_names)}</b>\n"
+        
+    await call.message.edit_text(msg, parse_mode="HTML")
     await call.answer()

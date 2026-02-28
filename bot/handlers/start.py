@@ -178,9 +178,14 @@ async def _restore_screen(
     is_editing: bool = data.get("is_editing", False)
 
     match state_name.removeprefix("OnboardingFSM:"):
+        case "full_name":
+            await _set_main(bot, chat_id, state,
+                "👤 Как тебя зовут? (ФИО)\n\n<i>Шаг 1 из 6  ·  введи текстом</i>",
+                cancel_keyboard() if is_editing else None)
+
         case "role":
             await _set_main(bot, chat_id, state,
-                "👤 Выбери роль:\n\n<i>Шаг 1 из 5</i>",
+                "🎭 Выбери роль:\n\n<i>Шаг 2 из 6</i>",
                 role_keyboard())
 
         case "faculty_browse":
@@ -188,12 +193,12 @@ async def _restore_screen(
             path = data.get("fac_path", [])
             page = data.get("fac_page", 0)
             await _set_main(bot, chat_id, state,
-                f"{get_faculty_breadcrumb_text(path, tree)}\n\n<i>Шаг 2 из 5</i>",
+                f"{get_faculty_breadcrumb_text(path, tree)}\n\n<i>Шаг 3 из 6</i>",
                 get_faculty_keyboard(path, page, tree, is_editing=is_editing))
 
         case "enrollment_year":
             await _set_main(bot, chat_id, state,
-                "📅 Год поступления?\n\n<i>Шаг 3 из 5</i>",
+                "📅 Год поступления?\n\n<i>Шаг 4 из 6</i>",
                 get_year_keyboard(data.get("year_page", 0),
                     year_min=cfg.enrollment_year_min,
                     year_max=cfg.enrollment_year_max,
@@ -201,7 +206,7 @@ async def _restore_screen(
 
         case "graduation_year":
             await _set_main(bot, chat_id, state,
-                "🏁 Год выпуска?\n\n<i>Шаг 3б из 5</i>",
+                "🏁 Год выпуска?\n\n<i>Шаг 4б из 6</i>",
                 get_year_keyboard(data.get("year_page", 0),
                     year_min=cfg.enrollment_year_min,
                     year_max=cfg.enrollment_year_max,
@@ -209,32 +214,32 @@ async def _restore_screen(
 
         case "employment_status":
             await _set_main(bot, chat_id, state,
-                "💼 Ты сейчас работаешь?\n\n<i>Шаг 4 из 5</i>",
+                "💼 Ты сейчас работаешь?\n\n<i>Шаг 5 из 6</i>",
                 employment_status_keyboard(is_editing=is_editing))
 
         case "company_name":
             await _set_main(bot, chat_id, state,
-                "🏢 Название компании?\n\n<i>Шаг 5 из 5  ·  введи текстом</i>",
+                "🏢 Название компании?\n\n<i>Шаг 6 из 6  ·  введи текстом</i>",
                 cancel_keyboard() if is_editing else None)
 
         case "work_city":
             await _set_main(bot, chat_id, state,
-                "🌆 Город?\n\n<i>Шаг 5 из 5</i>",
+                "🌆 Город?\n\n<i>Шаг 6 из 6</i>",
                 work_city_keyboard(is_editing=is_editing))
 
         case "work_format":
             await _set_main(bot, chat_id, state,
-                "🔀 Формат работы?\n\n<i>Шаг 5 из 5</i>",
+                "🔀 Формат работы?\n\n<i>Шаг 6 из 6</i>",
                 work_format_keyboard(is_editing=is_editing))
 
         case "position_title":
             await _set_main(bot, chat_id, state,
-                "👔 Должность?\n\n<i>Шаг 5 из 5  ·  введи текстом</i>",
+                "👔 Должность?\n\n<i>Шаг 6 из 6  ·  введи текстом</i>",
                 cancel_keyboard() if is_editing else None)
 
         case "position_level":
             await _set_main(bot, chat_id, state,
-                "📈 Уровень?\n\n<i>Шаг 5 из 5</i>",
+                "📈 Уровень?\n\n<i>Шаг 6 из 6</i>",
                 position_level_keyboard(is_editing=is_editing))
 
         case "confirm":
@@ -250,7 +255,7 @@ async def _launch_onboarding(
     message: Message, state: FSMContext, *, edit: bool = False
 ) -> None:
     await state.clear()
-    await state.set_state(OnboardingFSM.role)
+    await state.set_state(OnboardingFSM.full_name)
 
     text = (
         f"👋 Привет! Я <b>AlmaTrack</b> — карьерный дневник студента.\n\n"
@@ -258,23 +263,47 @@ async def _launch_onboarding(
         f"{E.lock} <b>Вуз НЕ видит:</b> имя, username, зарплату\n"
         "📊 <b>Вуз видит:</b> только обезличенную статистику\n\n"
         "━━━━━━━━━━━━━━━━\n"
-        "<i>Шаг 1 из 5 · Кто ты?</i>"
+        "<i>Шаг 1 из 6 · Введи свои ФИО</i>"
     )
     if edit:
         try:
-            await message.edit_text(text, reply_markup=role_keyboard(), parse_mode="HTML")
+            await message.edit_text(text, parse_mode="HTML")
             await state.update_data(bot_msg_id=message.message_id)
             return
         except Exception:
             pass
 
     await _delete(message.bot, message.chat.id, message.message_id)
-    sent = await message.answer(text, reply_markup=role_keyboard(), parse_mode="HTML")
+    sent = await message.answer(text, parse_mode="HTML")
     await state.update_data(bot_msg_id=sent.message_id)
 
 
 # ---------------------------------------------------------------------------
-# Step 1 — Role
+# Step 1 — Full Name
+# ---------------------------------------------------------------------------
+
+@router.message(OnboardingFSM.full_name, F.text)
+async def process_full_name(message: Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    is_editing = data.get("is_editing", False)
+    val = normalize_text(message.text)
+    await state.update_data(full_name=val)
+    await _delete(message.bot, message.chat.id, message.message_id)
+    
+    if is_editing:
+        await _show_confirm(message.bot, message.chat.id, state)
+    else:
+        await state.set_state(OnboardingFSM.role)
+        await _set_main(
+            message.bot, message.chat.id, state,
+            f"✅ ФИО: <b>{val}</b>\n\n"
+            "🎭 Выбери роль:\n\n<i>Шаг 2 из 6</i>",
+            role_keyboard(),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Step 2 — Role
 # ---------------------------------------------------------------------------
 
 
@@ -288,7 +317,7 @@ async def process_role(call: CallbackQuery, callback_data: RoleCB, state: FSMCon
         call.bot, call.message.chat.id, state,
         f"{get_faculty_breadcrumb_text([], tree)}\n\n"
         "📁 Папка — категория   ✅ — конкретный факультет\n\n"
-        "<i>Шаг 2 из 5</i>",
+        "<i>Шаг 3 из 6</i>",
         get_faculty_keyboard([], 0, tree),
     )
     await call.answer(ROLE_LABELS[callback_data.role])
@@ -338,7 +367,7 @@ async def process_faculty_nav(
         call.bot, call.message.chat.id, state,
         f"{get_faculty_breadcrumb_text(path, tree)}\n\n"
         "📁 Папка — категория   ✅ — конкретный факультет\n\n"
-        "<i>Шаг 2 из 5</i>",
+        "<i>Шаг 3 из 6</i>",
         get_faculty_keyboard(path, page, tree, is_editing=is_editing),
     )
     await call.answer()
@@ -351,7 +380,7 @@ async def _go_enrollment_year(bot: Bot, chat_id: int, state: FSMContext) -> None
     await _set_main(
         bot, chat_id, state,
         f"✅ Факультет: <b>{data['faculty']}</b>\n\n"
-        "📅 Год поступления?\n\n<i>Шаг 3 из 5</i>",
+        "📅 Год поступления?\n\n<i>Шаг 4 из 6</i>",
         get_year_keyboard(0, year_min=cfg.enrollment_year_min, year_max=cfg.enrollment_year_max),
     )
 
@@ -391,7 +420,7 @@ async def process_enrollment_year(
         await _set_main(
             call.bot, call.message.chat.id, state,
             f"✅ Поступление: <b>{callback_data.value}</b>\n\n"
-            "🏁 Год выпуска?\n\n<i>Шаг 3б из 5</i>",
+            "🏁 Год выпуска?\n\n<i>Шаг 4б из 6</i>",
             get_year_keyboard(0, year_min=cfg.enrollment_year_min, year_max=cfg.enrollment_year_max),
         )
     else:
@@ -431,7 +460,7 @@ async def process_graduation_year(
 async def _go_employment_status(bot: Bot, chat_id: int, state: FSMContext) -> None:
     await state.set_state(OnboardingFSM.employment_status)
     await _set_main(bot, chat_id, state,
-        "💼 Ты сейчас работаешь?\n\n<i>Шаг 4 из 5</i>",
+        "💼 Ты сейчас работаешь?\n\n<i>Шаг 5 из 6</i>",
         employment_status_keyboard(),
     )
 
@@ -462,7 +491,7 @@ async def process_employment_status(
             await state.set_state(OnboardingFSM.company_name)
             await _set_main(
                 call.bot, call.message.chat.id, state,
-                "🏢 Название компании?\n\n<i>Шаг 5 из 5  ·  введи текстом</i>",
+                "🏢 Название компании?\n\n<i>Шаг 6 из 6  ·  введи текстом</i>",
                 cancel_keyboard() if is_editing else None,
             )
     else:
@@ -493,7 +522,7 @@ async def process_company_name(message: Message, state: FSMContext) -> None:
     await _set_main(
         message.bot, message.chat.id, state,
         f"✅ Компания: <b>{val}</b>\n\n"
-        "🌆 Город?\n\n<i>Шаг 5 из 5</i>",
+        "🌆 Город?\n\n<i>Шаг 6 из 6</i>",
         work_city_keyboard(is_editing=is_editing),
     )
 
@@ -508,7 +537,7 @@ async def process_work_city(
     if callback_data.city == "Другой":
         await state.update_data(_awaiting_custom_city=True)
         await _set_main(call.bot, call.message.chat.id, state,
-            "✏️ Введи название города:\n\n<i>Шаг 5 из 5  ·  введи текстом</i>",
+            "✏️ Введи название города:\n\n<i>Шаг 6 из 6  ·  введи текстом</i>",
             cancel_keyboard() if is_editing else None,
         )
         await call.answer()
@@ -540,7 +569,7 @@ async def process_custom_city(message: Message, state: FSMContext) -> None:
 async def _go_work_format(bot: Bot, chat_id: int, state: FSMContext) -> None:
     await state.set_state(OnboardingFSM.work_format)
     await _set_main(bot, chat_id, state,
-        "🔀 Формат работы?\n\n<i>Шаг 5 из 5</i>",
+        "🔀 Формат работы?\n\n<i>Шаг 6 из 6</i>",
         work_format_keyboard(),
     )
 
@@ -559,7 +588,7 @@ async def process_work_format(
         await state.set_state(OnboardingFSM.position_title)
         await _set_main(call.bot, call.message.chat.id, state,
             "👔 Твоя должность?\n<i>Например: Python-разработчик…</i>\n\n"
-            "<i>Шаг 5 из 5  ·  введи текстом</i>",
+            "<i>Шаг 6 из 6  ·  введи текстом</i>",
         )
 
 
@@ -576,7 +605,7 @@ async def process_position_title(message: Message, state: FSMContext) -> None:
         await state.set_state(OnboardingFSM.position_level)
         await _set_main(message.bot, message.chat.id, state,
             f"✅ Должность: <b>{title}</b>\n\n"
-            "📈 Твой уровень?\n\n<i>Шаг 5 из 5</i>",
+            "📈 Твой уровень?\n\n<i>Шаг 6 из 6</i>",
             position_level_keyboard(),
         )
 
@@ -634,10 +663,16 @@ async def process_edit_field_select(
     await call.answer()
 
     match field:
+        case "full_name":
+            await state.set_state(OnboardingFSM.full_name)
+            await _set_main(call.bot, call.message.chat.id, state,
+                "👤 Введи новые ФИО:\n\n<i>введи текстом</i>",
+                cancel_keyboard())
+
         case "role":
             await state.set_state(OnboardingFSM.role)
             await _set_main(call.bot, call.message.chat.id, state,
-                "👤 Выбери роль:", role_keyboard())
+                "🎭 Выбери роль:", role_keyboard())
 
         case "faculty":
             await state.set_state(OnboardingFSM.faculty_browse)
@@ -713,7 +748,7 @@ async def _finalize_onboarding(call: CallbackQuery, state: FSMContext) -> None:
     bot_msg_id = data.get("bot_msg_id")
 
     user_id = call.from_user.id
-    full_name = call.from_user.full_name
+    full_name = data.get("full_name") or call.from_user.full_name
     username = call.from_user.username
     
     try:
@@ -784,7 +819,8 @@ def _build_summary_card(data: dict) -> str:
     lines  = [
         "📋 <b>Проверь данные перед сохранением</b>",
         "━━━━━━━━━━━━━━━━",
-        f"👤  Роль:          {role}",
+        f"👤  ФИО:          {data.get('full_name', '—')}",
+        f"🎭  Роль:          {role}",
         f"🎓  Факультет:    {data.get('faculty') or '—'}",
         f"📅  Поступление:  {data.get('enrollment_year') or '—'}",
     ]

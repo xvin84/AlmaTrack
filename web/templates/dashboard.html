@@ -7,87 +7,75 @@
     <title>AlmaTrack - Дашборд</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body,
+        .card,
+        input,
+        th,
+        td,
+        button {
+            transition: all 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
 </head>
 
-<body class="bg-gray-50 font-sans text-gray-800">
+<body id="body" class="bg-gray-50 text-gray-800 font-sans">
 
-    <nav class="bg-white shadow-sm px-6 py-4 flex justify-between items-center mb-8">
-        <div class="font-bold text-xl text-blue-600">AlmaTrack Администратор</div>
+    <button id="themeToggle" class="fixed bottom-6 left-6 w-14 h-14 flex items-center justify-center 
+           rounded-full shadow-xl bg-white text-yellow-500
+           transition-all duration-300 hover:scale-110 z-50 text-xl">
+        <span id="themeIcon">🌙</span>
+    </button>
+
+    <nav id="navbar" class="bg-white shadow-sm px-6 py-4 flex justify-between items-center mb-8">
+        <div class="font-bold text-xl text-blue-600">AlmaTrack</div>
         <div class="space-x-4">
             <a href="{{ url_for('dashboard') }}" class="text-blue-600 font-medium">Дашборд</a>
-            <a href="{{ url_for('alumni') }}" class="text-gray-500 hover:text-gray-800">Выпускники</a>
+            <a href="{{ url_for('alumni') }}" class="text-gray-500 hover:text-gray-800">Участники</a>
+            <a href="{{ url_for('requests_page') }}" class="text-gray-500 hover:text-gray-800">Заявки</a>
+            {% if session.get('moderator_priority') == 1 %}
+            <a href="{{ url_for('moderators') }}" class="text-gray-500 hover:text-gray-800">Модераторы</a>
+            {% endif %}
             <a href="{{ url_for('logout') }}" class="text-gray-500 hover:text-red-500">Выход</a>
         </div>
     </nav>
 
-    <div class="container mx-auto px-6">
-
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        <div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-4">
-            {% for message in messages %}
-            <span class="block sm:inline">{{ message }}</span>
-            {% endfor %}
-        </div>
-        {% endif %}
-        {% endwith %}
-
-        <div id="pendingContainer">
-            {% if pending_users %}
-            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 shadow-sm rounded">
-                <h3 class="text-lg font-bold text-yellow-800 mb-4">Ожидают подтверждения ({{ pending_users|length }})
-                </h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm whitespace-nowrap">
-                        <thead class="bg-yellow-100 text-yellow-800">
-                            <tr>
-                                <th class="px-4 py-2">ФИО</th>
-                                <th class="px-4 py-2">Факультет</th>
-                                <th class="px-4 py-2">Год поступления</th>
-                                <th class="px-4 py-2">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-yellow-200">
-                            {% for user in pending_users %}
-                            <tr class="hover:bg-yellow-100/50">
-                                <td class="px-4 py-2">{{ user.full_name }}</td>
-                                <td class="px-4 py-2">{{ user.faculty }}</td>
-                                <td class="px-4 py-2">{{ user.enrollment_year }}</td>
-                                <td class="px-4 py-2 flex gap-2">
-                                    <form action="{{ url_for('approve', user_id=user.telegram_id) }}" method="POST">
-                                        <button
-                                            class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs">Одобрить</button>
-                                    </form>
-                                    <form action="{{ url_for('reject', user_id=user.telegram_id) }}" method="POST">
-                                        <button
-                                            class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs">Отклонить</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% endif %}
-        </div>
+    <div class="container mx-auto px-6 py-8 animate-fade-in">
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow p-6 flex items-center justify-between border-l-4 border-blue-500">
+            <div class="card bg-white rounded-lg shadow p-6 flex justify-between border-l-4 border-blue-500">
                 <div>
-                    <p class="text-sm text-gray-500 mb-1">Всего студентов</p>
+                    <p class="text-sm text-gray-500 mb-1">Всего студентов (открытых)</p>
                     <h3 class="text-3xl font-bold">{{ stats.summary.total_users }}</h3>
                 </div>
                 <div class="text-3xl">📊</div>
             </div>
-            <div class="bg-white rounded-lg shadow p-6 flex items-center justify-between border-l-4 border-green-500">
+
+            <div class="card bg-white rounded-lg shadow p-6 flex justify-between border-l-4 border-green-500">
                 <div>
                     <p class="text-sm text-gray-500 mb-1">Компаний-работодателей</p>
                     <h3 class="text-3xl font-bold">{{ stats.summary.total_companies }}</h3>
                 </div>
                 <div class="text-3xl">🏢</div>
             </div>
-            <div class="bg-white rounded-lg shadow p-6 flex items-center justify-between border-l-4 border-purple-500">
+
+            <div class="card bg-white rounded-lg shadow p-6 flex justify-between border-l-4 border-purple-500">
                 <div>
                     <p class="text-sm text-gray-500 mb-1">Охвачено городов</p>
                     <h3 class="text-3xl font-bold">{{ stats.summary.total_cities }}</h3>
@@ -96,77 +84,166 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h4 class="text-lg font-semibold mb-4 text-gray-700">Топ работодателей</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <div class="card bg-white p-6 rounded-lg shadow">
+                <h4 class="text-lg font-semibold mb-4">Топ-10 работодателей</h4>
                 <canvas id="employersChart" height="200"></canvas>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h4 class="text-lg font-semibold mb-4 text-gray-700">Уровни</h4>
+
+            <div class="card bg-white p-6 rounded-lg shadow">
+                <h4 class="text-lg font-semibold mb-4">Уровни (Intern/Jr/Mid/Sr)</h4>
                 <div class="relative h-64 w-full flex justify-center">
                     <canvas id="levelsChart"></canvas>
                 </div>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h4 class="text-lg font-semibold mb-4 text-gray-700">Топ городов</h4>
+
+            <div class="card bg-white p-6 rounded-lg shadow">
+                <h4 class="text-lg font-semibold mb-4">Карьерный рост по годам выпуска (демо)</h4>
+                <canvas id="growthChart" height="200"></canvas>
+            </div>
+
+            <div class="card bg-white p-6 rounded-lg shadow">
+                <h4 class="text-lg font-semibold mb-4">Топ-7 городов</h4>
                 <canvas id="citiesChart" height="200"></canvas>
             </div>
+
         </div>
     </div>
 
     <script>
-        Chart.defaults.font.family = 'Inter, sans-serif';
+        const body = document.getElementById("body");
+        const navbar = document.getElementById("navbar");
+        const cards = document.querySelectorAll(".card");
+        const button = document.getElementById("themeToggle");
+        const icon = document.getElementById("themeIcon");
+
+        function setDark() {
+            body.style.backgroundColor = "#111827";
+            body.style.color = "#f3f4f6";
+            navbar.style.backgroundColor = "#1f2937";
+            button.style.backgroundColor = "#1f2937";
+            button.style.color = "#facc15";
+            cards.forEach(card => {
+                card.style.backgroundColor = "#1f2937";
+                card.style.color = "#f3f4f6";
+            });
+            icon.textContent = "☀️";
+            localStorage.setItem("theme", "dark");
+        }
+
+        function setLight() {
+            body.style.backgroundColor = "#f9fafb";
+            body.style.color = "#111827";
+            navbar.style.backgroundColor = "#ffffff";
+            button.style.backgroundColor = "#ffffff";
+            button.style.color = "#111827";
+            cards.forEach(card => {
+                card.style.backgroundColor = "#ffffff";
+                card.style.color = "#111827";
+            });
+            icon.textContent = "🌙";
+            localStorage.setItem("theme", "light");
+        }
+
+        if (localStorage.getItem("theme") === "dark") {
+            setDark();
+        } else {
+            setLight();
+        }
+
+        button.addEventListener("click", () => {
+            if (localStorage.getItem("theme") === "dark") {
+                setLight();
+            } else {
+                setDark();
+            }
+        });
+
         Chart.defaults.color = '#6b7280';
 
-        const employers = {{ stats.charts.employers.labels | tojson | safe }};
-        const employersData = {{ stats.charts.employers.data | tojson | safe }};
-        if (employers.length > 0) {
-            new Chart(document.getElementById('employersChart'), {
-                type: 'bar',
-                data: { labels: employers, datasets: [{ label: 'Сотрудников', data: employersData, backgroundColor: '#3b82f6' }] },
-                options: { indexAxis: 'y', responsive: true }
-            });
-        }
+        new Chart(document.getElementById('employersChart'), {
+            type: 'bar',
+            data: {
+                labels: {{ stats.charts.employers.labels | tojson }},
+            datasets: [{
+                label: 'Студентов',
+                data: {{ stats.charts.employers.data | tojson }},
+            backgroundColor: '#3b82f6'
+        }]
+    },
+            options: { indexAxis: 'y', responsive: true }
+});
 
-        const levels = {{ stats.charts.levels.labels | tojson | safe }};
-        const levelsData = {{ stats.charts.levels.data | tojson | safe }};
-        if (levels.length > 0) {
-            new Chart(document.getElementById('levelsChart'), {
-                type: 'doughnut',
-                data: { labels: levels, datasets: [{ data: levelsData, backgroundColor: ['#9ca3af', '#60a5fa', '#34d399', '#f87171', '#fbbf24', '#a78bfa'] }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        }
+        new Chart(document.getElementById('levelsChart'), {
+            type: 'doughnut',
+            data: {
+                labels: {{ stats.charts.levels.labels | tojson }},
+            datasets: [{
+                data: {{ stats.charts.levels.data | tojson }},
+            backgroundColor: ['#9ca3af', '#60a5fa', '#34d399', '#f87171']
+        }]
+    },
+            options: { responsive: true, maintainAspectRatio: false }
+});
 
-        const cities = {{ stats.charts.cities.labels | tojson | safe }};
-        const citiesData = {{ stats.charts.cities.data | tojson | safe }};
-        if (cities.length > 0) {
-            new Chart(document.getElementById('citiesChart'), {
-                type: 'bar',
-                data: { labels: cities, datasets: [{ label: 'Сотрудников', data: citiesData, backgroundColor: '#8b5cf6' }] },
-                options: { indexAxis: 'y', responsive: true }
-            });
-        }
+        new Chart(document.getElementById('growthChart'), {
+            type: 'line',
+            data: {
+                labels: ['2020', '2021', '2022', '2023', '2024'],
+                datasets: [
+                    { label: 'Месяцев до Junior', data: [12, 10, 8, 7, 6], borderColor: '#3b82f6', tension: 0.3 },
+                    { label: 'Месяцев до Middle', data: [24, 22, 18, 16, null], borderColor: '#10b981', tension: 0.3 }
+                ]
+            },
+            options: { responsive: true }
+        });
 
-        // Auto-refresh the pending section every 5 seconds
-        setInterval(() => {
-            fetch('/dashboard')
-                .then(r => r.text())
-                .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const newBlock = doc.querySelector('#pendingContainer');
-                    const oldBlock = document.querySelector('#pendingContainer');
-                    if (newBlock && oldBlock) {
-                        oldBlock.innerHTML = newBlock.innerHTML;
-                    } else if (newBlock && !oldBlock) {
-                        location.reload(); // Refresh fully if it just appeared
-                    } else if (!newBlock && oldBlock) {
-                        oldBlock.remove(); // Request list is empty now
-                    }
-                });
-        }, 5000);
+        new Chart(document.getElementById('citiesChart'), {
+            type: 'bar',
+            data: {
+                labels: {{ stats.charts.cities.labels | tojson }},
+            datasets: [{
+                label: 'Студентов',
+                data: {{ stats.charts.cities.data | tojson }},
+            backgroundColor: '#8b5cf6'
+        }]
+    },
+            options: { indexAxis: 'y', responsive: true }
+});
     </script>
+
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2"></div>
+
+    <script>
+        let lastPendingCount = null;
+        async function checkNewRequests() {
+            try {
+                const response = await fetch('/api/admin/pending');
+                const data = await response.json();
+                const currentCount = data.length;
+                if (lastPendingCount !== null && currentCount > lastPendingCount) {
+                    showToast('Новая заявка!', 'Поступила новая анкета на рассмотрение.', 'blue');
+                }
+                lastPendingCount = currentCount;
+            } catch (e) { }
+        }
+        function showToast(title, msg, color) {
+            const toast = document.createElement('div');
+            toast.className = `bg-white border-l-4 border-${color}-500 shadow-lg rounded-r p-4 mb-2 flex items-start w-72 transition-all transform duration-300 translate-x-10 opacity-0`;
+            toast.innerHTML = `<div><h4 class="font-bold text-gray-800 text-sm">${title}</h4><p class="text-xs text-gray-500 mt-1">${msg}</p></div>`;
+            document.getElementById('toastContainer').appendChild(toast);
+            setTimeout(() => { toast.classList.remove('translate-x-10', 'opacity-0'); }, 100);
+            setTimeout(() => {
+                toast.classList.add('translate-x-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+        setInterval(checkNewRequests, 15000);
+        // Check immediately on load to set baseline
+        checkNewRequests();
+    </script>
+
 </body>
 
 </html>

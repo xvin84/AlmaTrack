@@ -1,0 +1,90 @@
+nohup: ввод игнорируется
+warning: The `tool.uv.dev-dependencies` field (used in `pyproject.toml`) is deprecated and will be removed in a future release; use `dependency-groups.dev` instead
+ * Serving Flask app 'app'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.209:5000
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [28/Feb/2026 18:41:35] "GET / HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:00] "[32mGET / HTTP/1.1[0m" 302 -
+192.168.1.209 - - [28/Feb/2026 18:42:00] "GET /dashboard HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:00] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:06] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:06] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:08] "GET /dashboard HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:08] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:09] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:09] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:10] "GET /requests HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:10] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:10] "GET /moderators HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:11] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:13] "GET /dashboard HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:13] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:15] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:15] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:16] "GET /requests HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:16] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:17] "GET /requests HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:17] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:17] "GET /moderators HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:17] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:20] "GET /dashboard HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:21] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:25] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:26] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:36] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:41] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:46] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:49] "GET /requests HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:49] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:51] "GET /dashboard HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:42:51] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:42:55] "[32mGET /logout HTTP/1.1[0m" 302 -
+192.168.1.209 - - [28/Feb/2026 18:42:55] "GET / HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:43:23] "GET / HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:43:34] "[32mPOST /login HTTP/1.1[0m" 302 -
+192.168.1.209 - - [28/Feb/2026 18:43:34] "GET /dashboard HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:43:34] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:43:39] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:43:39] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:43:50] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:43:54] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:44:00] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:44:04] "GET /requests HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:44:04] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:44:06] "GET /moderators HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:44:06] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:44:10] "GET /dashboard HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:44:10] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:44:16] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:44:16] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:44:26] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:44:31] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:44:36] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:44:46] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:44:46] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:44:56] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:44:57] "GET /requests HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:44:57] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:45:00] "[32mPOST /approve/5265128481 HTTP/1.1[0m" 302 -
+192.168.1.209 - - [28/Feb/2026 18:45:00] "GET /requests HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:45:02] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:45:02] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:45:12] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:45:17] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:45:22] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:45:32] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:45:32] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:45:42] "GET /alumni HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:45:46] "GET /moderators HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:45:46] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:45:48] "GET /requests HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:45:48] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:45:49] "[32mPOST /reject/5265128481 HTTP/1.1[0m" 302 -
+192.168.1.209 - - [28/Feb/2026 18:45:49] "GET /requests HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:45:58] "GET /requests HTTP/1.1" 200 -
+192.168.1.209 - - [28/Feb/2026 18:46:03] "[33mGET /api/admin/pending HTTP/1.1[0m" 404 -
+192.168.1.209 - - [28/Feb/2026 18:46:08] "GET /requests HTTP/1.1" 200 -

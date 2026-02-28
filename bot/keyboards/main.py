@@ -39,7 +39,8 @@ class EventActionCB(CallbackData, prefix="event"):
     event_id: int
 
 
-# ---------------------------------------------------------------------------
+class DeleteAccountCB(CallbackData, prefix="del_acc"):
+    action: str    # confirm | cancel
 # Home / main hub
 # ---------------------------------------------------------------------------
 
@@ -52,7 +53,8 @@ def home_keyboard() -> InlineKeyboardMarkup:
     builder.button(text="📅  Мероприятия",  callback_data=NavCB(page="events"))
     builder.button(text="🔒  Приватность",  callback_data=NavCB(page="privacy"))
     builder.button(text="❓  Помощь",       callback_data=NavCB(page="help"))
-    builder.adjust(2, 2, 2)
+    builder.button(text="❌  Удалить аккаунт", callback_data=NavCB(page="delete_acc"))
+    builder.adjust(2, 2, 2, 1)
     return builder.as_markup()
 
 
@@ -145,4 +147,16 @@ def events_keyboard(
 def help_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     _back_row(builder)
+    return builder.as_markup()
+
+
+# ---------------------------------------------------------------------------
+# Delete Account
+# ---------------------------------------------------------------------------
+
+def delete_account_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="⚠️ Да, удалить навсегда", callback_data=DeleteAccountCB(action="confirm"))
+    builder.button(text="Отмена", callback_data=DeleteAccountCB(action="cancel"))
+    builder.adjust(1)
     return builder.as_markup()

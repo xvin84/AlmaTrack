@@ -58,6 +58,29 @@ async def _stats_text(user_id: int) -> str:
         )
         my_level = my_emp_res.scalar_one_or_none()
 
+        # Global stats
+        global_users = await session.scalar(select(func.count(User.telegram_id)).where(User.privacy_level < 2))
+        
+        global_comps_res = await session.execute(
+            select(Employment.company_name, func.count(Employment.id))
+            .join(User)
+            .where(User.privacy_level < 2, Employment.is_current == True)
+            .group_by(Employment.company_name)
+            .order_by(func.count(Employment.id).desc())
+            .limit(3)
+        )
+        global_comps = [row[0] for row in global_comps_res if row[0]]
+        
+        global_cities_res = await session.execute(
+            select(Employment.city, func.count(Employment.id))
+            .join(User)
+            .where(User.privacy_level < 2, Employment.is_current == True)
+            .group_by(Employment.city)
+            .order_by(func.count(Employment.id).desc())
+            .limit(3)
+        )
+        global_cities = [row[0] for row in global_cities_res if row[0]]
+
     dist_lines = []
     for k in ["intern", "junior", "middle", "senior", "lead", "cto"]:
         v = dist.get(k, 0)
@@ -67,14 +90,22 @@ async def _stats_text(user_id: int) -> str:
     dist_str = "\n".join(dist_lines)
     comp_str = ", ".join(top_companies) or "Нет данных"
     city_str = ", ".join(top_cities) or "Нет данных"
+    
+    g_comp_str = ", ".join(global_comps) or "Нет данных"
+    g_city_str = ", ".join(global_cities) or "Нет данных"
 
     return (
+        f"🌍 <b>Глобальная статистика AlmaTrack</b>\n"
+        f"👥 Всего участников: {global_users}\n"
+        f"🏢 Топ компании: {g_comp_str}\n"
+        f"🌆 Топ города: {g_city_str}\n\n"
+        f"━━━━━━━━━━━━━━\n\n"
         f"📊 <b>Статистика по факультету</b>\n"
         f"🎓 {faculty}\n\n"
-        f"👥 Всего профилей: {faculty_users_count}\n\n"
+        f"👥 Профилей: {faculty_users_count}\n\n"
         f"📈 <b>По уровням:</b>\n{dist_str}\n\n"
-        f"🏢 <b>Топ компании:</b> {comp_str}\n"
-        f"🌆 <b>Топ города:</b> {city_str}\n\n"
+        f"🏢 <b>Топ:</b> {comp_str}\n"
+        f"🌆 <b>Города:</b> {city_str}\n\n"
         "🔒 Данные обезличены."
     )
 

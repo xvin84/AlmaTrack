@@ -99,7 +99,7 @@ class ConfirmCB(CallbackData, prefix="confirm"):
 
 
 class EditFieldCB(CallbackData, prefix="edit_fld"):
-    field: str        # role | faculty | enrollment_year | graduation_year |
+    field: str        # full_name | role | faculty | enrollment_year | graduation_year |
                       # employment_status | company_name | work_city |
                       # work_format | position_title | position_level
 
@@ -330,9 +330,14 @@ def edit_fields_keyboard(data: dict) -> InlineKeyboardMarkup:
 
     builder = InlineKeyboardBuilder()
 
+    if data.get("full_name"):
+        builder.button(
+            text=f"👤  ФИО: {data['full_name']}",
+            callback_data=EditFieldCB(field="full_name"),
+        )
     if data.get("role"):
         builder.button(
-            text=f"👤  Роль: {ROLE_LABELS.get(data['role'], data['role'])}",
+            text=f"🎭  Роль: {ROLE_LABELS.get(data['role'], data['role'])}",
             callback_data=EditFieldCB(field="role"),
         )
     if data.get("faculty"):

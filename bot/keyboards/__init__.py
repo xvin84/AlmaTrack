@@ -33,6 +33,8 @@ from .main import (
     privacy_keyboard,
     events_keyboard,
     help_keyboard,
+    delete_account_keyboard,
+    DeleteAccountCB,
 )
 
 __all__ = [
@@ -47,7 +49,7 @@ __all__ = [
     "position_level_keyboard", "confirm_keyboard",
     "cancel_keyboard", "edit_fields_keyboard",
     # main nav
-    "NavCB", "PrivacyToggleCB", "EventActionCB",
+    "NavCB", "PrivacyToggleCB", "EventActionCB", "DeleteAccountCB",
     "home_keyboard", "profile_keyboard", "achievements_keyboard",
-    "stats_keyboard", "privacy_keyboard", "events_keyboard", "help_keyboard",
+    "stats_keyboard", "privacy_keyboard", "events_keyboard", "help_keyboard", "delete_account_keyboard"
 ]

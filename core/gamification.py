@@ -9,6 +9,10 @@ from __future__ import annotations
 
 from enum import IntEnum
 from typing import TYPE_CHECKING
+from datetime import datetime
+
+from sqlalchemy import select, func
+from db.models import UserProgress, Achievement, Employment, EventsAttendance
 
 if TYPE_CHECKING:
     pass  # type hints only — no circular imports
@@ -167,13 +171,30 @@ async def award_xp(user_id: int, event: str, session) -> tuple[int, Level | None
     Returns:
         (xp_gained, new_level_if_leveled_up)
     """
-    # TODO: implement
-    # 1. Look up XP_REWARDS[event]
-    # 2. Fetch current xp from user_progress
-    # 3. Add xp, check if level changed
-    # 4. Update user_progress in DB
-    # 5. Return (gained, new_level or None)
     xp_gained = XP_REWARDS.get(event, 0)
+    if xp_gained == 0:
+        return 0, None
+
+    result = await session.execute(select(UserProgress).where(UserProgress.user_id == user_id))
+    progress = result.scalar_one_or_none()
+
+    if not progress:
+        progress = UserProgress(user_id=user_id, xp_points=0, current_level=1)
+        session.add(progress)
+
+    old_level = progress.current_level
+    progress.xp_points += xp_gained
+    progress.last_xp_gain = datetime.now()
+
+    new_level = calculate_level(progress.xp_points)
+
+    if event == "update_job" or event == "profile_complete":
+        progress.total_updates += 1
+
+    if new_level > old_level:
+        progress.current_level = int(new_level)
+        return xp_gained, new_level
+
     return xp_gained, None
 
 
@@ -183,17 +204,56 @@ async def check_and_award_badges(user_id: int, session) -> list[str]:
 
     Returns list of newly awarded badge codes.
     """
-    # TODO: implement
-    # For each badge code, check condition against DB data:
-    #   FIRST_JOB   — has any employment record
-    #   UPDATER     — total_updates >= 3
-    #   STREAK_7    — streak_days >= 7
-    #   SENIOR_PLUS — any employment with level in (senior, lead, cto)
-    #   NETWORKER   — events_attendance count >= 3
-    #   LEGEND_LEVEL — current_level == 5
-    # Award (INSERT IGNORE) any newly met conditions
-    # Return list of newly awarded codes
-    return []
+    result = await session.execute(select(Achievement.badge_code).where(Achievement.user_id == user_id))
+    existing = set(result.scalars().all())
+
+    new_badges = []
+
+    def add_badge(code: str):
+        if code not in existing:
+            session.add(Achievement(user_id=user_id, badge_code=code))
+            new_badges.append(code)
+            existing.add(code)
+
+    # FIRST_STEP
+    add_badge("FIRST_STEP")
+
+    # FIRST_JOB
+    emp_res = await session.execute(select(func.count(Employment.id)).where(Employment.user_id == user_id))
+    if emp_res.scalar() > 0:
+        add_badge("FIRST_JOB")
+
+    prog_res = await session.execute(select(UserProgress).where(UserProgress.user_id == user_id))
+    prog = prog_res.scalar_one_or_none()
+
+    if prog:
+        # UPDATER
+        if prog.total_updates >= 3:
+            add_badge("UPDATER")
+
+        # STREAK_7
+        if prog.streak_days >= 7:
+            add_badge("STREAK_7")
+
+        # LEGEND_LEVEL
+        if prog.current_level >= 5:
+            add_badge("LEGEND_LEVEL")
+
+    # SENIOR_PLUS
+    seniors = await session.execute(
+        select(func.count(Employment.id))
+        .where(Employment.user_id == user_id)
+        .where(Employment.position_level.in_(["senior", "lead", "cto"]))
+    )
+    if seniors.scalar() > 0:
+        add_badge("SENIOR_PLUS")
+
+    # NETWORKER
+    att_res = await session.execute(select(func.count(EventsAttendance.event_id)).where(EventsAttendance.user_id == user_id))
+    if att_res.scalar() >= 3:
+        add_badge("NETWORKER")
+
+    return new_badges
 
 
 async def update_streak(user_id: int, session) -> int:
@@ -202,10 +262,23 @@ async def update_streak(user_id: int, session) -> int:
 
     Returns current streak_days value.
     """
-    # TODO: implement
-    # 1. Fetch last_active from user_progress
-    # 2. If last_active was yesterday → increment streak_days
-    # 3. If last_active was today → no change
-    # 4. If last_active was 2+ days ago → reset streak to 1
-    # 5. Update last_active = now
-    return 0
+    result = await session.execute(select(UserProgress).where(UserProgress.user_id == user_id))
+    progress = result.scalar_one_or_none()
+    
+    now = datetime.now()
+    if not progress:
+        progress = UserProgress(user_id=user_id, streak_days=1, last_active=now)
+        session.add(progress)
+    else:
+        if progress.last_active:
+            diff = (now.date() - progress.last_active.date()).days
+            if diff == 1:
+                progress.streak_days += 1
+            elif diff > 1:
+                progress.streak_days = 1
+        else:
+            progress.streak_days = 1
+            
+        progress.last_active = now
+
+    return progress.streak_days

@@ -6,6 +6,8 @@ from aiogram.types import CallbackQuery, Message
 from bot.keyboards import NavCB, achievements_keyboard
 from core.gamification import BADGES
 from core.emoji import E
+from db.base import get_session
+from db.crud import get_user_badge_codes
 
 router = Router(name="achievements")
 
@@ -28,9 +30,11 @@ def _build_text(earned_codes: set[str]) -> str:
     return text
 
 
-async def _show(target, earned_codes: set[str] | None = None) -> None:
-    if earned_codes is None:
-        earned_codes = {"FIRST_STEP"}  # TODO: fetch from DB
+async def _show(target) -> None:
+    user_id = target.from_user.id
+    async with get_session() as session:
+        earned_codes = await get_user_badge_codes(user_id, session)
+        
     text = _build_text(earned_codes)
     kb   = achievements_keyboard()
     if isinstance(target, CallbackQuery):

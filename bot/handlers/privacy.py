@@ -4,6 +4,8 @@ from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
 from bot.keyboards import NavCB, PrivacyToggleCB, privacy_keyboard
+from db.base import get_session
+from db.crud import get_user, update_privacy_level
 
 router = Router(name="privacy")
 
@@ -36,19 +38,29 @@ async def _show(target, current_level: int = 1) -> None:
 
 @router.message(Command("privacy"))
 async def cmd_privacy(message: Message) -> None:
-    # TODO: fetch current_level from DB
-    await _show(message, 1)
+    user_id = message.from_user.id
+    async with get_session() as session:
+        user = await get_user(user_id, session)
+        level = user.privacy_level if user else 1
+    await _show(message, level)
 
 
 @router.callback_query(NavCB.filter(F.page == "privacy"))
 async def nav_privacy(call: CallbackQuery) -> None:
-    # TODO: fetch current_level from DB
-    await _show(call, 1)
+    user_id = call.from_user.id
+    async with get_session() as session:
+        user = await get_user(user_id, session)
+        level = user.privacy_level if user else 1
+    await _show(call, level)
 
 
 @router.callback_query(PrivacyToggleCB.filter())
 async def process_privacy_toggle(call: CallbackQuery, callback_data: PrivacyToggleCB) -> None:
-    # TODO: update DB
+    user_id = call.from_user.id
+    async with get_session() as session:
+        await update_privacy_level(user_id, callback_data.level, session)
+        await session.commit()
+        
     await call.answer("✅ Настройки сохранены")
     text = PRIVACY_DESCRIPTIONS[callback_data.level] + "\n\nВыбери уровень:"
     try:

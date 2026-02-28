@@ -11,7 +11,7 @@ from datetime import date
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import Achievement, Employment, Event, EventsAttendance, User, UserProgress
+from db.models import Achievement, Employment, Event, EventsAttendance, User, UserProgress, Moderator
 
 
 # ---------------------------------------------------------------------------
@@ -68,6 +68,13 @@ async def touch_last_active(telegram_id: int, session: AsyncSession) -> None:
     """Update last_active timestamp. Call on each user interaction."""
     # TODO: implement — use func.now() or datetime.utcnow()
     pass
+
+
+async def delete_user(telegram_id: int, session: AsyncSession) -> None:
+    """Delete a user and cascading models manually if needed, by ID."""
+    user = await get_user(telegram_id, session)
+    if user:
+        await session.delete(user)
 
 
 # ---------------------------------------------------------------------------
@@ -257,3 +264,50 @@ async def get_summary_counts(session: AsyncSession) -> dict:
     """Return total_users, total_companies, total_cities, total_alumni."""
     # TODO: implement COUNT queries
     return {"total_users": 0, "total_companies": 0, "total_cities": 0, "total_alumni": 0}
+
+
+# ---------------------------------------------------------------------------
+# Moderators
+# ---------------------------------------------------------------------------
+
+
+async def get_moderator_by_username(username: str, session: AsyncSession) -> Moderator | None:
+    result = await session.execute(select(Moderator).where(Moderator.username == username))
+    return result.scalar_one_or_none()
+
+
+async def get_moderator_by_id(mod_id: int, session: AsyncSession) -> Moderator | None:
+    result = await session.execute(select(Moderator).where(Moderator.id == mod_id))
+    return result.scalar_one_or_none()
+
+
+async def get_all_moderators(session: AsyncSession) -> list[Moderator]:
+    result = await session.execute(select(Moderator).order_by(Moderator.created_at))
+    return list(result.scalars().all())
+
+
+async def create_moderator(
+    username: str,
+    full_name: str,
+    password_hash: str,
+    session: AsyncSession,
+    priority: int = 2
+) -> Moderator:
+    mod = Moderator(
+        username=username,
+        full_name=full_name,
+        password_hash=password_hash,
+        priority=priority
+    )
+    session.add(mod)
+    await session.flush()
+    return mod
+
+
+async def delete_moderator(mod_id: int, session: AsyncSession) -> bool:
+    mod = await get_moderator_by_id(mod_id, session)
+    if mod:
+        await session.delete(mod)
+        await session.flush()
+        return True
+    return False

@@ -43,10 +43,10 @@ class User(Base):
     )
 
     # Relationships
-    employment: Mapped[list[Employment]] = relationship(back_populates="user")
-    progress: Mapped[UserProgress | None] = relationship(back_populates="user", uselist=False)
-    achievements: Mapped[list[Achievement]] = relationship(back_populates="user")
-    events_attendance: Mapped[list[EventsAttendance]] = relationship(back_populates="user")
+    employment: Mapped[list[Employment]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    progress: Mapped[UserProgress | None] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
+    achievements: Mapped[list[Achievement]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    events_attendance: Mapped[list[EventsAttendance]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
 class Employment(Base):
@@ -128,3 +128,14 @@ class EventsAttendance(Base):
 
     user: Mapped[User] = relationship(back_populates="events_attendance")
     event: Mapped[Event] = relationship(back_populates="attendance")
+
+
+class Moderator(Base):
+    __tablename__ = "moderators"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    full_name: Mapped[str] = mapped_column(String(256), nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    priority: Mapped[int] = mapped_column(Integer, default=2)  # 1 = Top Admin, 2 = Regular Admin
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

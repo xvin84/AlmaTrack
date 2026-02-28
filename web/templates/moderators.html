@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlmaTrack - Модераторы</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body,
+        .card,
+        input,
+        th,
+        td,
+        button {
+            transition: all 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
+</head>
+
+<body id="body" class="bg-gray-50 text-gray-800 font-sans">
+
+    <button id="themeToggle" class="fixed bottom-6 left-6 w-14 h-14 flex items-center justify-center 
+           rounded-full shadow-xl bg-white text-yellow-500
+           transition-all duration-300 hover:scale-110 z-50 text-xl">
+        <span id="themeIcon">🌙</span>
+    </button>
+
+    <nav id="navbar" class="bg-white shadow-sm px-6 py-4 flex justify-between items-center mb-8">
+        <div class="font-bold text-xl text-blue-600">AlmaTrack</div>
+        <div class="space-x-4">
+            <a href="{{ url_for('dashboard') }}" class="text-gray-500 hover:text-gray-800">Дашборд</a>
+            <a href="{{ url_for('alumni') }}" class="text-gray-500 hover:text-gray-800">Участники</a>
+            <a href="{{ url_for('requests_page') }}" class="text-gray-500 hover:text-gray-800">Заявки</a>
+            {% if session.get('moderator_priority') == 1 %}
+            <a href="{{ url_for('moderators') }}" class="text-blue-600 font-medium">Модераторы</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="text-gray-500 hover:text-red-500">Выход</a>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-6 animate-fade-in grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-2 card bg-white shadow rounded-lg overflow-hidden h-fit">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-800">Список модераторов</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full whitespace-nowrap" id="modsTable">
+                    <thead id="tableHead"
+                        class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        <tr>
+                            <th class="px-6 py-3">Логин</th>
+                            <th class="px-6 py-3">Имя</th>
+                            <th class="px-6 py-3">Права</th>
+                            <th class="px-6 py-3">Добавлен</th>
+                            <th class="px-6 py-3 text-center">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 text-sm">
+                        {% for m in moderators %}
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4 font-medium">{{ m.username }}</td>
+                            <td class="px-6 py-4">{{ m.full_name }}</td>
+                            <td class="px-6 py-4">
+                                <span
+                                    class="px-2 py-1 rounded-full text-xs 
+                                    {% if m.priority == 1 %} bg-purple-100 text-purple-800 {% else %} bg-blue-100 text-blue-800 {% endif %}">
+                                    {{ "Главный Пм" if m.priority == 1 else "Модератор РФ" }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4">{{ m.created_at }}</td>
+                            <td class="px-6 py-4 text-center">
+                                {% if m.id != session.get('moderator_id') %}
+                                <form action="{{ url_for('delete_moderator_route', mod_id=m.id) }}" method="POST"
+                                    class="inline" onsubmit="return confirm('Удалить модератора?');">
+                                    <button class="text-red-500 hover:text-red-700 font-bold">Удалить</button>
+                                </form>
+                                {% else %}
+                                <span class="text-gray-400">Это вы</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Forms -->
+        <div class="card bg-white shadow rounded-lg p-6 h-fit">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2 border-gray-200">Добавить модератора</h2>
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            {% for message in messages %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('add_moderator') }}" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ФИО / Имя</label>
+                    <input type="text" name="full_name" required
+                        class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500 focus:outline-none text-gray-800">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Логин</label>
+                    <input type="text" name="username" required
+                        class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500 focus:outline-none text-gray-800">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Пароль</label>
+                    <input type="password" name="password" required
+                        class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500 focus:outline-none text-gray-800">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Права (Priority)</label>
+                    <select name="priority"
+                        class="w-full border rounded px-3 py-2 focus:ring focus:ring-blue-200 focus:border-blue-500 focus:outline-none text-gray-800">
+                        <option value="2">Модератор РФ (Обычный)</option>
+                        <option value="1">Главный Пм (Полный доступ)</option>
+                    </select>
+                </div>
+                <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition">
+                    Добавить
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const body = document.getElementById("body");
+        const navbar = document.getElementById("navbar");
+        const cards = document.querySelectorAll(".card");
+        const table = document.getElementById("modsTable");
+        const tableHead = document.getElementById("tableHead");
+        const inputsElements = document.querySelectorAll("input, select");
+        const button = document.getElementById("themeToggle");
+        const icon = document.getElementById("themeIcon");
+
+        function getRows() { return table.querySelectorAll("tbody tr"); }
+
+        function setDark() {
+            body.style.backgroundColor = "#111827";
+            body.style.color = "#f3f4f6";
+            navbar.style.backgroundColor = "#1f2937";
+            button.style.backgroundColor = "#1f2937";
+            button.style.color = "#facc15";
+            cards.forEach(c => { c.style.backgroundColor = "#1f2937"; c.style.color = "#f3f4f6"; });
+            table.style.backgroundColor = "#1f2937";
+            tableHead.style.backgroundColor = "#1f2937";
+            tableHead.style.color = "#f3f4f6";
+            getRows().forEach(r => { r.style.color = "#f3f4f6"; });
+            inputsElements.forEach(i => { i.style.backgroundColor = "#374151"; i.style.color = "#f3f4f6"; i.style.borderColor = "#6b7280"; });
+            icon.textContent = "☀️";
+            localStorage.setItem("theme", "dark");
+        }
+
+        function setLight() {
+            body.style.backgroundColor = "#f9fafb";
+            body.style.color = "#111827";
+            navbar.style.backgroundColor = "#ffffff";
+            button.style.backgroundColor = "#ffffff";
+            button.style.color = "#111827";
+            cards.forEach(c => { c.style.backgroundColor = "#ffffff"; c.style.color = "#111827"; });
+            table.style.backgroundColor = "#ffffff";
+            tableHead.style.backgroundColor = "#f9fafb";
+            tableHead.style.color = "#6b7280";
+            getRows().forEach(r => { r.style.color = "#111827"; });
+            inputsElements.forEach(i => { i.style.backgroundColor = "#ffffff"; i.style.color = "#111827"; i.style.borderColor = "#d1d5db"; });
+            icon.textContent = "🌙";
+            localStorage.setItem("theme", "light");
+        }
+
+        if (localStorage.getItem("theme") === "dark") { setDark(); } else { setLight(); }
+
+        button.addEventListener("click", () => {
+            if (localStorage.getItem("theme") === "dark") { setLight(); } else { setDark(); }
+        });
+    </script>
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2"></div>
+    <script>
+        let lastPendingCount = null;
+        async function checkNewRequests() {
+            try {
+                const response = await fetch('/api/admin/pending');
+                const data = await response.json();
+                const currentCount = data.length;
+                if (lastPendingCount !== null && currentCount > lastPendingCount) {
+                    showToast('Новая заявка!', 'Поступила новая анкета на рассмотрение.', 'blue');
+                }
+                lastPendingCount = currentCount;
+            } catch (e) { }
+        }
+        function showToast(title, msg, color) {
+            const toast = document.createElement('div');
+            toast.className = `bg-white border-l-4 border-${color}-500 shadow-lg rounded-r p-4 mb-2 flex items-start w-72 transition-all transform duration-300 translate-x-10 opacity-0`;
+            toast.innerHTML = `<div><h4 class="font-bold text-gray-800 text-sm">${title}</h4><p class="text-xs text-gray-500 mt-1">${msg}</p></div>`;
+            document.getElementById('toastContainer').appendChild(toast);
+            setTimeout(() => { toast.classList.remove('translate-x-10', 'opacity-0'); }, 100);
+            setTimeout(() => {
+                toast.classList.add('translate-x-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+        setInterval(checkNewRequests, 15000);
+        checkNewRequests();
+    </script>
+</body>
+
+</html>

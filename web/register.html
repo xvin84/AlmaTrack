@@ -4,12 +4,24 @@
     <meta charset="UTF-8">
     <title>Регистрация - AlmaTrack</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, input, button, .card {
+            transition: background-color 0.3s, color 0.3s;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 h-screen flex items-center justify-center">
+<body id="body" class="bg-gray-100 h-screen flex items-center justify-center font-sans">
 
-<div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
+<button id="themeToggle"
+    class="fixed bottom-6 left-6 w-14 h-14 flex items-center justify-center 
+           rounded-full shadow-xl bg-white text-yellow-500
+           transition-all duration-300 hover:scale-110 z-50 text-xl">
+    <span id="themeIcon">🌙</span>
+</button>
 
-    <h1 class="text-2xl font-bold text-center mb-6">Регистрация</h1>
+<div class="card bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
+
+    <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">Регистрация</h1>
 
     <form action="register.php" method="POST">
 
@@ -38,6 +50,61 @@
     </p>
 
 </div>
+
+<script>
+const body = document.getElementById("body");
+const card = document.querySelector(".card");
+const inputs = document.querySelectorAll("input");
+const buttonSubmit = document.querySelector("button[type=submit]");
+const themeButton = document.getElementById("themeToggle");
+const icon = document.getElementById("themeIcon");
+
+function setDark() {
+    body.style.backgroundColor = "#111827";
+    body.style.color = "#f3f4f6";
+    card.style.backgroundColor = "#1f2937";
+    card.style.color = "#f3f4f6";
+    inputs.forEach(input => {
+        input.style.backgroundColor = "#374151";
+        input.style.color = "#f3f4f6";
+        input.style.borderColor = "#6b7280";
+    });
+    buttonSubmit.style.backgroundColor = "#2563eb";
+    buttonSubmit.style.color = "#fff";
+
+    themeButton.style.backgroundColor = "#1f2937";
+    themeButton.style.color = "#facc15";
+    icon.textContent = "☀️";
+
+    localStorage.setItem("theme", "dark");
+}
+
+function setLight() {
+    body.style.backgroundColor = "#f3f4f6";
+    body.style.color = "#111827";
+    card.style.backgroundColor = "#ffffff";
+    card.style.color = "#111827";
+    inputs.forEach(input => {
+        input.style.backgroundColor = "#ffffff";
+        input.style.color = "#111827";
+        input.style.borderColor = "#d1d5db";
+    });
+    buttonSubmit.style.backgroundColor = "#3b82f6";
+    buttonSubmit.style.color = "#fff";
+
+    themeButton.style.backgroundColor = "#ffffff";
+    themeButton.style.color = "#111827";
+    icon.textContent = "🌙";
+
+    localStorage.setItem("theme", "light");
+}
+
+if(localStorage.getItem("theme") === "dark") { setDark(); } else { setLight(); }
+
+themeButton.addEventListener("click", () => {
+    if(localStorage.getItem("theme") === "dark") { setLight(); } else { setDark(); }
+});
+</script>
 
 </body>
 </html>

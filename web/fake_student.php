@@ -3,15 +3,56 @@ require "database.php";
 
 $conn->query("TRUNCATE TABLE student");
 
-$names = ["ivan", "Alexy", "Maria", "Dmitriy", "Anna", "Sergay"];
-$surnames = ["Ivanov", "Petrov", "Sidorov", "Mirage"];
-$cities = ["kazan", "Samara"];
-$faculties = ["IT"];
-$departments = ["Programmist"];
-$workplaces = ["Яндекс", "Сбер", "VK", "Тинькофф", "Ozon"];
-$statuses_list = ["Intern","Junior","Middle","Senior"];
+$names = [
+    "Ivan", "Alexey", "Maria", "Dmitriy", "Anna", "Sergey",
+    "Olga", "Nikita", "Vladimir", "Elena", "Artem", "Sofia",
+    "Mikhail", "Alina", "Kirill", "Tatiana", "Roman", "Victoria"
+];
 
-for ($i = 0; $i < 228; $i++) {
+$surnames = [
+    "Ivanov", "Petrov", "Sidorov", "Smirnov", "Kuznetsov",
+    "Popov", "Sokolov", "Lebedev", "Kozlov", "Novikov",
+    "Morozov", "Volkov", "Fedorov", "Mikhailov"
+];
+
+$cities = [
+    "Moscow", "Saint Petersburg", "Kazan", "Samara",
+    "Novosibirsk", "Yekaterinburg", "Nizhny Novgorod",
+    "Chelyabinsk", "Omsk", "Rostov-on-Don",
+    "Ufa", "Krasnodar", "Perm", "Voronezh"
+];
+
+$faculties = [
+    "IT", "Computer Science", "Software Engineering",
+    "Cybersecurity", "Data Science",
+    "Artificial Intelligence", "Applied Mathematics",
+    "Information Systems"
+];
+
+$departments = [
+    "Programmer", "Backend Developer", "Frontend Developer",
+    "Mobile Developer", "DevOps Engineer",
+    "QA Engineer", "System Analyst",
+    "Data Analyst", "Machine Learning Engineer",
+    "Database Administrator"
+];
+
+$workplaces = [
+    "Yandex", "Sber", "VK", "Tinkoff", "Ozon",
+    "Google", "Amazon", "Microsoft",
+    "EPAM", "Kaspersky",
+    "Avito", "Wildberries",
+    "Mail.ru Group", "JetBrains"
+];
+
+$statuses_list = [
+    "Intern",
+    "Junior",
+    "Middle",
+    "Senior"
+];
+
+for ($i = 0; $i < 6; $i++) {
 
     $name = $names[array_rand($names)];
     $surname = $surnames[array_rand($surnames)];

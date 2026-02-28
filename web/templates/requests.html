@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlmaTrack - Участники</title>
+    <title>AlmaTrack - Заявки</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body,
@@ -51,8 +51,8 @@
         <div class="font-bold text-xl text-blue-600">AlmaTrack</div>
         <div class="space-x-4">
             <a href="{{ url_for('dashboard') }}" class="text-gray-500 hover:text-gray-800">Дашборд</a>
-            <a href="{{ url_for('alumni') }}" class="text-blue-600 font-medium">Участники</a>
-            <a href="{{ url_for('requests_page') }}" class="text-gray-500 hover:text-gray-800">Заявки</a>
+            <a href="{{ url_for('alumni') }}" class="text-gray-500 hover:text-gray-800">Участники</a>
+            <a href="{{ url_for('requests_page') }}" class="text-blue-600 font-medium">Заявки</a>
             {% if session.get('moderator_priority') == 1 %}
             <a href="{{ url_for('moderators') }}" class="text-gray-500 hover:text-gray-800">Модераторы</a>
             {% endif %}
@@ -63,54 +63,77 @@
     <div class="container mx-auto px-6 animate-fade-in">
         <div class="card bg-white shadow rounded-lg overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h2 class="text-lg font-semibold text-gray-800">Реестр участников проекта</h2>
-                <input type="text" id="searchInput" placeholder="Поиск по имени или компании..."
-                    class="border rounded px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                <h2 class="text-lg font-semibold text-gray-800">
+                    Новые заявки (<span id="pendingCount">{{ pending_users|length }}</span>)
+                </h2>
+                <div class="flex items-center space-x-3">
+                    <form action="{{ url_for('approve_all') }}" method="POST" class="inline">
+                        <button
+                            class="bg-green-500 hover:bg-green-600 text-white text-sm px-4 py-2 rounded shadow">Одобрить
+                            всё</button>
+                    </form>
+                    <form action="{{ url_for('reject_all') }}" method="POST" class="inline">
+                        <button
+                            class="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-2 rounded shadow">Отклонить
+                            всё</button>
+                    </form>
+                    <input type="text" id="searchInput" placeholder="Поиск по имени или компании..."
+                        class="border rounded px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                </div>
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full whitespace-nowrap" id="studentsTable">
+                <table class="w-full whitespace-nowrap" id="requestsTable">
                     <thead id="tableHead"
-                        class="bg-gray-50 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider select-none">
+                        class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                         <tr>
-                            <th class="px-6 py-3 cursor-pointer hover:bg-gray-200 transition"
-                                onclick="sortAlumniTable(0)">ФИО <span class="text-xs">↕</span></th>
-                            <th class="px-6 py-3 cursor-pointer hover:bg-gray-200 transition"
-                                onclick="sortAlumniTable(1)">Факультет <span class="text-xs">↕</span></th>
-                            <th class="px-6 py-3 cursor-pointer hover:bg-gray-200 transition"
-                                onclick="sortAlumniTable(2)">Уровень <span class="text-xs">↕</span></th>
-                            <th class="px-6 py-3 cursor-pointer hover:bg-gray-200 transition"
-                                onclick="sortAlumniTable(3)">Год выпуска <span class="text-xs">↕</span></th>
-                            <th class="px-6 py-3 cursor-pointer hover:bg-gray-200 transition"
-                                onclick="sortAlumniTable(4)">Компания <span class="text-xs">↕</span></th>
-                            <th class="px-6 py-3">Связь</th>
+                            <th class="px-6 py-3" onclick="sortTable(0)">ФИО ↕</th>
+                            <th class="px-6 py-3" onclick="sortTable(1)">Факультет ↕</th>
+                            <th class="px-6 py-3" onclick="sortTable(2)">Год поступления ↕</th>
+                            <th class="px-6 py-3" onclick="sortTable(3)">Уровень ↕</th>
+                            <th class="px-6 py-3" onclick="sortTable(4)">Компания ↕</th>
+                            <th class="px-6 py-3 text-center">Связаться</th>
+                            <th class="px-6 py-3 text-center">Действия</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200 text-sm" id="alumniTbody">
-                        {% for s in students %}
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4 font-medium text-gray-900">{{ s.full_name }}</td>
-                            <td class="px-6 py-4 text-gray-500">{{ s.faculty }}</td>
+                    <tbody class="divide-y divide-gray-200 text-sm" id="requestsTbody">
+                        {% for r in pending_users %}
+                        <tr class="hover:bg-gray-50 transition" id="row-{{ r.telegram_id }}">
+                            <td class="px-6 py-4 font-medium">{{ r.full_name }}</td>
+                            <td class="px-6 py-4">{{ r.faculty }}</td>
+                            <td class="px-6 py-4">{{ r.enrollment_year }}</td>
                             <td class="px-6 py-4">
-                                <span
-                                    class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                    {{ s.position_level or 'Безработный' }}
+                                <span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                                    {{ r.position }}
                                 </span>
                             </td>
-                            <td class="px-6 py-4 text-gray-500">{{ s.graduation_year or '—' }}</td>
-                            <td class="px-6 py-4 text-gray-700">{{ s.company_name or '—' }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if s.telegram_id %}
-                                <a href="tg://user?id={{ s.telegram_id }}"
+                            <td class="px-6 py-4">{{ r.company }}</td>
+                            <td class="px-6 py-4 text-center">
+                                <a href="tg://user?id={{ r.telegram_id }}"
                                     class="text-blue-500 hover:text-blue-700 underline text-xs">
                                     💬 Написать
                                 </a>
-                                {% else %}
-                                —
-                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <button onclick="handleDecision('approve', {{ r.telegram_id }})"
+                                    class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded">
+                                    Одобрить
+                                </button>
+                                <button onclick="handleDecision('reject', {{ r.telegram_id }})"
+                                    class="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 rounded ml-2">
+                                    Отклонить
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
+
+                        {% if pending_users|length == 0 %}
+                        <tr id="emptyRow">
+                            <td colspan="7" class="px-6 py-8 text-center text-gray-400">
+                                Нет новых заявок
+                            </td>
+                        </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
@@ -121,14 +144,17 @@
         const body = document.getElementById("body");
         const navbar = document.getElementById("navbar");
         const cards = document.querySelectorAll(".card");
-        const table = document.getElementById("studentsTable"); // Changed from alumniTable to studentsTable
+        const table = document.getElementById("requestsTable");
         const tableHead = document.getElementById("tableHead");
         const inputs = document.querySelectorAll("input");
         const button = document.getElementById("themeToggle");
         const icon = document.getElementById("themeIcon");
 
         function getRows() {
-            return table.querySelectorAll("tbody tr");
+            return table.querySelectorAll("tbody tr:not(#emptyRow)");
+        }
+        function getButtons() {
+            return table.querySelectorAll("button");
         }
 
         function setDark() {
@@ -171,58 +197,77 @@
 
         document.getElementById('searchInput').addEventListener('input', function () {
             let filter = this.value.toLowerCase();
-            let rows = getRows(); // Changed to use getRows()
-            rows.forEach(row => {
+            getRows().forEach(row => {
                 let text = row.textContent.toLowerCase();
                 row.style.display = text.includes(filter) ? '' : 'none';
             });
         });
 
-        let sortDirections = [true, true, true, true, true, true]; // Adjusted for 6 columns
-        function sortAlumniTable(n) {
-            let table = document.getElementById("studentsTable");
-            let tbody = table.querySelector("tbody");
-            let rowsArray = Array.from(tbody.rows);
-            let switching = true;
-            let dir = sortDirections[n] ? "asc" : "desc";
-            sortDirections[n] = !sortDirections[n];
+        async function handleDecision(action, userId) {
+            try {
+                const response = await fetch(`/${action}/${userId}`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    const row = document.getElementById(`row-${userId}`);
+                    if (row) row.remove();
 
-            rowsArray.sort((rowA, rowB) => {
-                let x = rowA.getElementsByTagName("TD")[n];
-                let y = rowB.getElementsByTagName("TD")[n];
+                    // Update counter
+                    const currentCount = document.querySelectorAll('#requestsTbody tr[id^="row-"]').length;
+                    document.getElementById('pendingCount').textContent = currentCount;
 
-                let v1 = x.textContent.trim().toLowerCase();
-                let v2 = y.textContent.trim().toLowerCase();
-
-                // Specific handling for numeric columns if needed, e.g., 'Год выпуска' (index 3)
-                if (n === 3) { // 'Год выпуска' column
-                    v1 = parseInt(v1) || 0;
-                    v2 = parseInt(v2) || 0;
+                    if (currentCount === 0) {
+                        const tbody = document.getElementById('requestsTbody');
+                        tbody.innerHTML = `
+                    <tr id="emptyRow">
+                        <td colspan="7" class="px-6 py-8 text-center text-gray-400">
+                            Нет новых заявок
+                        </td>
+                    </tr>
+                `;
+                    }
                 }
-
-                if (dir == "asc") {
-                    if (v1 > v2) return 1;
-                    if (v1 < v2) return -1;
-                    return 0;
-                } else { // dir == "desc"
-                    if (v1 < v2) return 1;
-                    if (v1 > v2) return -1;
-                    return 0;
-                }
-            });
-            rowsArray.forEach(row => tbody.appendChild(row));
+            } catch (e) {
+                console.error('Action failed', e);
+            }
         }
 
+        // Table Sorting Functionality
+        let sortDirection = {};
+        function sortTable(columnIndex) {
+            const table = document.getElementById("requestsTable");
+            const tbody = table.querySelector("tbody");
+            const rowsArray = Array.from(tbody.querySelectorAll("tr:not(#emptyRow)"));
+            if (rowsArray.length === 0) return;
+
+            if (sortDirection[columnIndex] === undefined) {
+                sortDirection[columnIndex] = true;
+            } else {
+                sortDirection[columnIndex] = !sortDirection[columnIndex];
+            }
+            const asc = sortDirection[columnIndex];
+
+            rowsArray.sort((a, b) => {
+                const textA = a.cells[columnIndex].innerText.toLowerCase().trim();
+                const textB = b.cells[columnIndex].innerText.toLowerCase().trim();
+                if (textA < textB) return asc ? -1 : 1;
+                if (textA > textB) return asc ? 1 : -1;
+                return 0;
+            });
+
+            tbody.innerHTML = "";
+            rowsArray.forEach(row => tbody.appendChild(row));
+        }
         // Real-time polling
         setInterval(async () => {
             try {
-                let res = await fetch("{{ url_for('alumni') }}");
+                let res = await fetch("{{ url_for('requests_page') }}");
                 let text = await res.text();
                 let parser = new DOMParser();
                 let doc = parser.parseFromString(text, 'text/html');
-                let newTbody = doc.getElementById('alumniTbody');
+                let newTbody = doc.getElementById('requestsTbody');
                 if (newTbody) {
-                    document.getElementById('alumniTbody').innerHTML = newTbody.innerHTML;
+                    document.getElementById('requestsTbody').innerHTML = newTbody.innerHTML;
                     if (localStorage.getItem("theme") === "dark") {
                         setDark();
                     }

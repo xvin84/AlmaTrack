@@ -12,6 +12,9 @@ class OnboardingFSM(StatesGroup):
     """
 
     # Step 1
+    full_name = State()
+
+    # Step 2
     role = State()
 
     # Step 2 — FSM data: fac_path: list[int], fac_page: int

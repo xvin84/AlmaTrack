@@ -1,38 +1,112 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
-    <meta charset="UTF-8">
-    <title>AlmaTrack - Вход</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <title>AlmaTrack - Вход</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body,
+    .card,
+    input {
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 h-screen flex items-center justify-center font-sans">
-<div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
+
+<body id="body" class="bg-gray-50 h-screen flex items-center justify-center font-sans text-gray-800">
+
+  <button id="themeToggle" class="fixed bottom-6 left-6 w-14 h-14 flex items-center justify-center 
+           rounded-full shadow-xl bg-white text-yellow-500
+           transition-all duration-300 hover:scale-110 z-50 text-xl">
+    <span id="themeIcon">🌙</span>
+  </button>
+
+  <div class="card bg-white p-8 rounded-lg shadow-md w-full max-w-sm animate-fade-in">
     <div class="text-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">AlmaTrack</h1>
-        <p class="text-sm text-gray-500 mt-2">Панель управления ВУЗа</p>
+      <h1 class="text-3xl font-bold text-blue-600">AlmaTrack</h1>
+      <p class="text-sm text-gray-500 mt-2">Панель управления</p>
     </div>
-    
+
     {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-          {% for message in messages %}
-            <span class="block sm:inline">{{ message }}</span>
-          {% endfor %}
-        </div>
-      {% endif %}
+    {% if messages %}
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+      {% for message in messages %}
+      <span class="block sm:inline">{{ message }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
     {% endwith %}
 
     <form action="{{ url_for('login') }}" method="POST">
-        <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Логин</label>
-            <input name="username" type="text" required placeholder="admin" class="shadow border rounded w-full py-2 px-3">
-        </div>
-        <div class="mb-6">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Пароль</label>
-            <input name="password" type="password" required placeholder="********" class="shadow border rounded w-full py-2 px-3">
-        </div>
-        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">Войти</button>
+      <div class="mb-4">
+        <label class="block text-gray-700 text-sm font-bold mb-2">Логин</label>
+        <input name="username" type="text" required placeholder="admin"
+          class="shadow border rounded w-full py-2 px-3 text-gray-800">
+      </div>
+      <div class="mb-6">
+        <label class="block text-gray-700 text-sm font-bold mb-2">Пароль</label>
+        <input name="password" type="password" required placeholder="********"
+          class="shadow border rounded w-full py-2 px-3 text-gray-800">
+      </div>
+      <button type="submit"
+        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">Войти</button>
     </form>
-</div>
+  </div>
+
+  <script>
+    const body = document.getElementById("body");
+    const card = document.querySelector(".card");
+    const inputsElements = document.querySelectorAll("input");
+    const button = document.getElementById("themeToggle");
+    const icon = document.getElementById("themeIcon");
+
+    function setDark() {
+      body.style.backgroundColor = "#111827";
+      body.style.color = "#f3f4f6";
+      button.style.backgroundColor = "#1f2937";
+      button.style.color = "#facc15";
+      card.style.backgroundColor = "#1f2937";
+      card.style.color = "#f3f4f6";
+      inputsElements.forEach(i => { i.style.backgroundColor = "#374151"; i.style.color = "#f3f4f6"; i.style.borderColor = "#6b7280"; });
+      icon.textContent = "☀️";
+      localStorage.setItem("theme", "dark");
+    }
+
+    function setLight() {
+      body.style.backgroundColor = "#f9fafb";
+      body.style.color = "#111827";
+      button.style.backgroundColor = "#ffffff";
+      button.style.color = "#111827";
+      card.style.backgroundColor = "#ffffff";
+      card.style.color = "#111827";
+      inputsElements.forEach(i => { i.style.backgroundColor = "#ffffff"; i.style.color = "#111827"; i.style.borderColor = "#d1d5db"; });
+      icon.textContent = "🌙";
+      localStorage.setItem("theme", "light");
+    }
+
+    if (localStorage.getItem("theme") === "dark") { setDark(); } else { setLight(); }
+
+    button.addEventListener("click", () => {
+      if (localStorage.getItem("theme") === "dark") { setLight(); } else { setDark(); }
+    });
+  </script>
 </body>
+
 </html>
