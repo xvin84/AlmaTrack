@@ -1,175 +1,84 @@
 """
 Gamification logic: XP rewards, level thresholds, badge definitions.
-
-Usage example (after DB integration):
-    xp_gained, new_level = await award_xp(user_id, "update_job", session)
-    new_badges = await check_and_award_badges(user_id, session)
+Aligned strictly with TZ.
 """
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import TYPE_CHECKING
 from datetime import datetime
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import select, func
-from db.models import UserProgress, Achievement, Employment, EventsAttendance
+from db.models import UserProgress, Achievement, Employment, EventsAttendance, User
 
-if TYPE_CHECKING:
-    pass  # type hints only — no circular imports
+class BadgeCode(str):
+    FIRST_JOB = "FIRST_JOB"
+    UPDATED = "UPDATED"
+    REMOTE_WORKER = "REMOTE_WORKER"
+    ALUMNI = "ALUMNI"
+    LEVEL_UP = "LEVEL_UP"
+    MENTOR = "MENTOR"
+    LOYAL = "LOYAL"
+    PIONEER = "PIONEER"
 
-# ---------------------------------------------------------------------------
-# Levels
-# ---------------------------------------------------------------------------
-
-
-class Level(IntEnum):
-    NEWCOMER = 1
-    ACTIVE = 2
-    EXPERIENCED = 3
-    EXPERT = 4
-    LEGEND = 5
-
-
-LEVEL_NAMES = {
-    Level.NEWCOMER: "Новичок",
-    Level.ACTIVE: "Активный",
-    Level.EXPERIENCED: "Опытный",
-    Level.EXPERT: "Эксперт",
-    Level.LEGEND: "Легенда",
+BADGE_META = {
+    BadgeCode.FIRST_JOB:     {"name": "Первый шаг",        "emoji": "🎯", "xp": 50, "description": "Добавлено первое место работы.", "hint": "Добавь своё первое место работы."},
+    BadgeCode.UPDATED:       {"name": "Не стоит на месте", "emoji": "🔄", "xp": 30, "description": "Обновлены данные о работе минимум один раз.", "hint": "Обнови свои данные о работе."},
+    BadgeCode.REMOTE_WORKER: {"name": "Удалёнщик",         "emoji": "🏠", "xp": 20, "description": "Работает в удалённом формате.", "hint": "Укажи формат работы «Удаленно»."},
+    BadgeCode.ALUMNI:        {"name": "Выпускник",         "emoji": "🎓", "xp": 40, "description": "Является выпускником (alumni).", "hint": "Заполни год выпуска."},
+    BadgeCode.LEVEL_UP:      {"name": "Рост",              "emoji": "📈", "xp": 60, "description": "Достигнут 2 уровень.", "hint": "Прокачай свой профиль до 2 уровня."},
+    BadgeCode.MENTOR:        {"name": "Ментор",            "emoji": "🤝", "xp": 80, "description": "Отмечен как ментор.", "hint": "Стань ментором проекта."},
+    BadgeCode.LOYAL:         {"name": "Свой",              "emoji": "⭐", "xp": 50, "description": "Пользуется ботом длительное время.", "hint": "Будь активным пользователем AlmaTrack."},
+    BadgeCode.PIONEER:       {"name": "Первопроходец",     "emoji": "🥇", "xp": 100, "description": "Один из первых пользователей.", "hint": "Зарегистрируйся в числе первых."},
 }
 
-LEVEL_EMOJIS = {
-    Level.NEWCOMER: "🌱",
-    Level.ACTIVE: "⚡",
-    Level.EXPERIENCED: "🔥",
-    Level.EXPERT: "💎",
-    Level.LEGEND: "👑",
-}
-
-# XP required to *reach* each level
-XP_THRESHOLDS: dict[Level, int] = {
-    Level.NEWCOMER: 0,
-    Level.ACTIVE: 100,
-    Level.EXPERIENCED: 300,
-    Level.EXPERT: 700,
-    Level.LEGEND: 1500,
-}
-
-# ---------------------------------------------------------------------------
-# XP reward table
-# ---------------------------------------------------------------------------
+LEVEL_THRESHOLDS = {1: 0, 2: 100, 3: 300, 4: 600, 5: 1000}
+LEVEL_NAMES = {1: "🌱 Новичок", 2: "🚀 Стажёр", 3: "💼 Специалист",
+               4: "🔥 Профи", 5: "👑 Легенда"}
 
 XP_REWARDS: dict[str, int] = {
     "onboarding_complete": 50,
-    "first_job": 100,
+    "add_job": 40,
     "update_job": 30,
-    "profile_complete": 20,
-    "streak_3": 15,
-    "streak_7": 30,
-    "streak_30": 100,
-    "register_event": 10,
+    "income_increase": 60,
+    "streak_7": 25,
+    "register_event": 15,
+    "first_alumni": 40,
+    "mentor": 80,
 }
 
-# ---------------------------------------------------------------------------
-# Badges
-# ---------------------------------------------------------------------------
-
-BADGES: dict[str, dict] = {
-    "FIRST_STEP": {
-        "emoji": "👣",
-        "name": "Первый шаг",
-        "description": "Прошёл регистрацию в AlmaTrack",
-        "hint": "Пройди регистрацию",
-    },
-    "FIRST_JOB": {
-        "emoji": "💼",
-        "name": "Первая работа",
-        "description": "Добавил первое место работы",
-        "hint": "Укажи место работы",
-    },
-    "UPDATER": {
-        "emoji": "🔄",
-        "name": "Обновлятель",
-        "description": "Обновил данные о работе 3 раза",
-        "hint": "Обнови данные 3 раза командой /update",
-    },
-    "STREAK_7": {
-        "emoji": "🔥",
-        "name": "Неделя активности",
-        "description": "7 дней подряд взаимодействовал с ботом",
-        "hint": "Заходи в бот 7 дней подряд",
-    },
-    "SENIOR_PLUS": {
-        "emoji": "🚀",
-        "name": "Старший специалист",
-        "description": "Достиг уровня Senior или выше",
-        "hint": "Укажи должность Senior/Lead",
-    },
-    "NETWORKER": {
-        "emoji": "🤝",
-        "name": "Нетворкер",
-        "description": "Зарегистрировался на 3 мероприятия",
-        "hint": "Запишись на 3 мероприятия",
-    },
-    "LEGEND_LEVEL": {
-        "emoji": "👑",
-        "name": "Легенда",
-        "description": "Достиг 5-го уровня (1500 XP)",
-        "hint": "Набери 1500 XP",
-    },
-}
-
-# ---------------------------------------------------------------------------
-# Pure functions (no DB)
-# ---------------------------------------------------------------------------
-
-
-def calculate_level(xp: int) -> Level:
+def calculate_level(xp: int) -> int:
     """Return the Level corresponding to the given XP total."""
-    current = Level.NEWCOMER
-    for lvl in Level:
-        if xp >= XP_THRESHOLDS[lvl]:
-            current = lvl
-    return current
+    level = 1
+    for lvl, threshold in sorted(LEVEL_THRESHOLDS.items()):
+        if xp >= threshold:
+            level = lvl
+    return level
 
-
-def xp_to_next_level(xp: int) -> int | None:
-    """
-    Return how many XP are needed to reach the next level.
-    Returns None if the user is already at max level.
-    """
+def xp_to_next_level(xp: int) -> Optional[int]:
+    """Return how many XP are needed to reach the next level."""
     current = calculate_level(xp)
-    if current == Level.LEGEND:
+    if current == 5:
         return None
-    next_lvl = Level(current + 1)
-    return XP_THRESHOLDS[next_lvl] - xp
+    next_threshold = LEVEL_THRESHOLDS[current + 1]
+    return next_threshold - xp
 
-
-def format_level_bar(xp: int, bar_length: int = 10) -> str:
+def format_level_bar(xp: int, length: int = 10) -> str:
     """Return a visual progress bar string for the current level."""
-    current = calculate_level(xp)
-    if current == Level.LEGEND:
-        return "█" * bar_length + " MAX"
-    next_lvl = Level(current + 1)
-    low = XP_THRESHOLDS[current]
-    high = XP_THRESHOLDS[next_lvl]
-    progress = (xp - low) / (high - low)
-    filled = round(progress * bar_length)
-    bar = "█" * filled + "░" * (bar_length - filled)
-    return f"{bar} {xp}/{high} XP"
+    current_level = calculate_level(xp)
+    if current_level == 5:
+        return "█" * length + " MAX"
+    current_threshold = LEVEL_THRESHOLDS[current_level]
+    next_threshold = LEVEL_THRESHOLDS[current_level + 1]
+    progress = (xp - current_threshold) / (next_threshold - current_threshold)
+    filled = int(progress * length)
+    bar = "█" * filled + "░" * (length - filled)
+    return f"{bar} {int(progress * 100)}%"
 
-
-# ---------------------------------------------------------------------------
-# Async DB-integrated functions (implement after DB layer is ready)
-# ---------------------------------------------------------------------------
-
-
-async def award_xp(user_id: int, event: str, session) -> tuple[int, Level | None]:
+async def award_xp(user_id: int, event: str, session) -> tuple[int, int | None]:
     """
     Add XP for the given event, check for level-up.
-
-    Returns:
-        (xp_gained, new_level_if_leveled_up)
+    Returns: (xp_gained, new_level_if_leveled_up)
     """
     xp_gained = XP_REWARDS.get(event, 0)
     if xp_gained == 0:
@@ -188,7 +97,7 @@ async def award_xp(user_id: int, event: str, session) -> tuple[int, Level | None
 
     new_level = calculate_level(progress.xp_points)
 
-    if event == "update_job" or event == "profile_complete":
+    if event in ["update_job", "add_job"]:
         progress.total_updates += 1
 
     if new_level > old_level:
@@ -197,11 +106,9 @@ async def award_xp(user_id: int, event: str, session) -> tuple[int, Level | None
 
     return xp_gained, None
 
-
 async def check_and_award_badges(user_id: int, session) -> list[str]:
     """
     Evaluate all badge conditions and award unearned ones.
-
     Returns list of newly awarded badge codes.
     """
     result = await session.execute(select(Achievement.badge_code).where(Achievement.user_id == user_id))
@@ -209,57 +116,62 @@ async def check_and_award_badges(user_id: int, session) -> list[str]:
 
     new_badges = []
 
-    def add_badge(code: str):
+    async def add_badge_with_xp(code: str):
         if code not in existing:
             session.add(Achievement(user_id=user_id, badge_code=code))
             new_badges.append(code)
             existing.add(code)
-
-    # FIRST_STEP
-    add_badge("FIRST_STEP")
+            # Award XP for the badge
+            prog_res = await session.execute(select(UserProgress).where(UserProgress.user_id == user_id))
+            prog = prog_res.scalar_one()
+            prog.xp_points += BADGE_META[code]["xp"]
+            prog.current_level = calculate_level(prog.xp_points)
 
     # FIRST_JOB
     emp_res = await session.execute(select(func.count(Employment.id)).where(Employment.user_id == user_id))
     if emp_res.scalar() > 0:
-        add_badge("FIRST_JOB")
+        await add_badge_with_xp(BadgeCode.FIRST_JOB)
 
     prog_res = await session.execute(select(UserProgress).where(UserProgress.user_id == user_id))
     prog = prog_res.scalar_one_or_none()
+    
+    user_res = await session.execute(select(User).where(User.telegram_id == user_id))
+    user = user_res.scalar_one_or_none()
 
     if prog:
-        # UPDATER
-        if prog.total_updates >= 3:
-            add_badge("UPDATER")
+        # UPDATED
+        if prog.total_updates > 0:
+            await add_badge_with_xp(BadgeCode.UPDATED)
 
-        # STREAK_7
-        if prog.streak_days >= 7:
-            add_badge("STREAK_7")
+        # LOYAL (Active 30+ days)
+        if user and user.created_at:
+            days_active = (datetime.now() - user.created_at).days
+            if days_active >= 30:
+                await add_badge_with_xp(BadgeCode.LOYAL)
 
-        # LEGEND_LEVEL
-        if prog.current_level >= 5:
-            add_badge("LEGEND_LEVEL")
-
-    # SENIOR_PLUS
-    seniors = await session.execute(
+    # REMOTE_WORKER
+    remote_res = await session.execute(
         select(func.count(Employment.id))
-        .where(Employment.user_id == user_id)
-        .where(Employment.position_level.in_(["senior", "lead", "cto"]))
+        .where(Employment.user_id == user_id, Employment.work_format == "remote")
     )
-    if seniors.scalar() > 0:
-        add_badge("SENIOR_PLUS")
+    if remote_res.scalar() > 0:
+        await add_badge_with_xp(BadgeCode.REMOTE_WORKER)
+        
+    # ALUMNI
+    if user and user.is_alumni:
+        await add_badge_with_xp(BadgeCode.ALUMNI)
 
-    # NETWORKER
-    att_res = await session.execute(select(func.count(EventsAttendance.event_id)).where(EventsAttendance.user_id == user_id))
-    if att_res.scalar() >= 3:
-        add_badge("NETWORKER")
+    # PIONEER (First 100 users)
+    user_pioneer = await session.execute(select(User.telegram_id).order_by(User.created_at).limit(100))
+    pioneers = [row[0] for row in user_pioneer]
+    if user_id in pioneers:
+        await add_badge_with_xp(BadgeCode.PIONEER)
 
     return new_badges
-
 
 async def update_streak(user_id: int, session) -> int:
     """
     Update daily streak. Call on every user interaction.
-
     Returns current streak_days value.
     """
     result = await session.execute(select(UserProgress).where(UserProgress.user_id == user_id))
@@ -269,16 +181,19 @@ async def update_streak(user_id: int, session) -> int:
     if not progress:
         progress = UserProgress(user_id=user_id, streak_days=1, last_active=now)
         session.add(progress)
-    else:
-        if progress.last_active:
-            diff = (now.date() - progress.last_active.date()).days
-            if diff == 1:
-                progress.streak_days += 1
-            elif diff > 1:
-                progress.streak_days = 1
-        else:
+        return 1
+    
+    if progress.last_active:
+        diff = (now.date() - progress.last_active.date()).days
+        if diff == 1:
+            progress.streak_days += 1
+            if progress.streak_days % 7 == 0:
+                await award_xp(user_id, "streak_7", session)
+        elif diff > 1:
             progress.streak_days = 1
-            
-        progress.last_active = now
+    else:
+        progress.streak_days = 1
+        
+    progress.last_active = now
 
     return progress.streak_days

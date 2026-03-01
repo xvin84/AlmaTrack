@@ -1,7 +1,7 @@
 import sqlite3
 import httpx
 from werkzeug.security import check_password_hash, generate_password_hash
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 
 app = Flask(__name__)
 app.secret_key = "change-me-in-production"
@@ -114,6 +114,28 @@ def reject_all():
     except Exception as e:
         flash(f"Ошибка: {e}")
     return redirect(url_for('requests_page'))
+
+@app.route('/api/admin/pending')
+def api_admin_pending():
+    if not session.get('logged_in'):
+        return jsonify([])
+    try:
+        req = httpx.get(f"{API_BASE_URL}/admin/pending", timeout=5.0)
+        return jsonify(req.json())
+    except Exception:
+        return jsonify([])
+
+@app.route('/events')
+def events():
+    if not session.get('logged_in'):
+        return redirect(url_for('index'))
+    return render_template('events.html')
+
+@app.route('/analytics')
+def analytics():
+    if not session.get('logged_in'):
+        return redirect(url_for('index'))
+    return render_template('analytics.html')
 
 @app.route('/alumni')
 def alumni():

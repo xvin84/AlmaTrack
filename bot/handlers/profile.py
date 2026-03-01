@@ -7,7 +7,7 @@ from bot.keyboards import NavCB, home_keyboard, profile_keyboard, DeleteAccountC
 from core.emoji import E
 from db.base import get_session
 from db.crud import get_user, get_current_employment, get_user_progress, get_user_badge_codes, delete_user
-from core.gamification import LEVEL_NAMES, LEVEL_EMOJIS, xp_to_next_level, BADGES
+from core.gamification import LEVEL_NAMES, xp_to_next_level, BADGE_META
 from bot.handlers.employment import LEVEL_LABELS, FORMAT_LABELS
 
 router = Router()
@@ -38,7 +38,7 @@ async def _show_profile(target, user_id: int) -> None:
 
     badge_list = []
     for code in badges_set:
-        b = BADGES.get(code, {})
+        b = BADGE_META.get(code, {})
         emoji = b.get("emoji", "🏅")
         name = b.get("name", code)
         badge_list.append(f"{emoji} {name}")
@@ -48,7 +48,7 @@ async def _show_profile(target, user_id: int) -> None:
     text = (
         f"👤 <b>{user.full_name}</b>\n"
         f"🎓 {user.faculty} · {user.enrollment_year}\n\n"
-        f"{LEVEL_EMOJIS.get(level, '⭐')} <b>Уровень {level} — {LEVEL_NAMES.get(level, 'Студент')}</b>\n"
+        f"<b>Уровень {level} — {LEVEL_NAMES.get(level, 'Студент')}</b>\n"
         f"{E.star} XP: {xp_text}  {E.fire} Стрик: {streak} дн.\n\n"
     )
     

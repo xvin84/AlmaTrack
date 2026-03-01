@@ -46,25 +46,34 @@ LEVEL_LABELS  = {
 
 @router.message(Command("update"))
 async def cmd_update_msg(message: Message, state: FSMContext) -> None:
-    await _start_update(message, state)
+    await _start_update(message, message.from_user.id, state)
 
 
 @router.callback_query(NavCB.filter(F.page == "update_job"))
 async def cmd_update_cb(call: CallbackQuery, state: FSMContext) -> None:
-    await _start_update(call.message, state)
+    await _start_update(call.message, call.from_user.id, state)
     await call.answer()
 
 
-async def _start_update(message: Message, state: FSMContext) -> None:
+async def _start_update(message: Message, user_id: int, state: FSMContext) -> None:
     async with get_session() as session:
-        user = await get_user(message.from_user.id, session)
+        user = await get_user(user_id, session)
         if not user:
             await message.answer("❌ Сначала нужно пройти регистрацию: /start")
             return
             
-        has_job = await has_current_employment(message.from_user.id, session)
+        has_job = await has_current_employment(user_id, session)
 
     await state.set_state(UpdateEmploymentFSM.confirm_end_current)
+    await state.update_data(
+        full_name=user.full_name,
+        role="alumni" if user.is_alumni else "student",
+        faculty=user.faculty,
+        enrollment_year=user.enrollment_year,
+        graduation_year=user.graduation_year,
+        employment_status="working"
+    )
+    
     if has_job:
         await message.answer(
             "✏️ <b>Обновление места работы</b>\n\n"
@@ -202,8 +211,8 @@ async def upd_final(call: CallbackQuery, callback_data: ConfirmCB, state: FSMCon
     if new_level is not None:
         msg += f"🎉 <b>Уровень повышен: {new_level.name}!</b>\n"
     if badges:
-        from core.gamification import BADGES
-        b_names = [BADGES.get(b, {}).get('name', b) for b in badges]
+        from core.gamification import BADGE_META
+        b_names = [BADGE_META.get(b, {}).get('name', b) for b in badges]
         msg += f"🏅 <b>Новые бейджи: {', '.join(b_names)}</b>\n"
         
     await call.message.edit_text(msg, parse_mode="HTML")

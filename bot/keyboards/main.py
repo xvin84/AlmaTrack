@@ -7,7 +7,7 @@ NavCB drives the entire app shell: home → section → back.
 from __future__ import annotations
 
 from aiogram.filters.callback_data import CallbackData
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
@@ -28,6 +28,7 @@ class NavCB(CallbackData, prefix="nav"):
         update_job   — triggers UpdateEmploymentFSM
     """
     page: str
+    subpage: int = 0
 
 
 class PrivacyToggleCB(CallbackData, prefix="privacy"):
@@ -125,18 +126,46 @@ def privacy_keyboard(current_level: int) -> InlineKeyboardMarkup:
 def events_keyboard(
     events: list[dict],
     user_registered_ids: set[int],
+    page: int = 0,
+    has_next: bool = False
 ) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for event in events:
         registered = event["id"] in user_registered_ids
-        action = "unregister" if registered else "register"
         label = f"{'✅' if registered else '📌'}  {event['title']}"
         builder.button(
             text=label,
-            callback_data=EventActionCB(action=action, event_id=event["id"]),
+            callback_data=EventActionCB(action="view", event_id=event["id"]),
         )
-    _back_row(builder)
+    
+    # Pagination
+    nav_buttons = []
+    if page > 0:
+        nav_buttons.append(
+            InlineKeyboardButton(text="⬅️", callback_data=NavCB(page="events", subpage=page-1).pack())
+        )
+    if has_next:
+        nav_buttons.append(
+            InlineKeyboardButton(text="➡️", callback_data=NavCB(page="events", subpage=page+1).pack())
+        )
+    
     builder.adjust(1)
+    if nav_buttons:
+        builder.row(*nav_buttons)
+        
+    _back_row(builder)
+    return builder.as_markup()
+
+
+def event_details_keyboard(event_id: int, registered: bool) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    action = "unregister" if registered else "register"
+    label = "Отменить запись ❌" if registered else "Записаться ✅"
+    builder.button(
+        text=label,
+        callback_data=EventActionCB(action=action, event_id=event_id)
+    )
+    builder.row(InlineKeyboardButton(text="⬅️ К списку", callback_data=NavCB(page="events").pack()))
     return builder.as_markup()
 
 

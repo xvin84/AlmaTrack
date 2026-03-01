@@ -4,7 +4,7 @@ from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
 from bot.keyboards import NavCB, achievements_keyboard
-from core.gamification import BADGES
+from core.gamification import BADGE_META
 from core.emoji import E
 from db.base import get_session
 from db.crud import get_user_badge_codes
@@ -14,11 +14,11 @@ router = Router(name="achievements")
 
 def _build_text(earned_codes: set[str]) -> str:
     earned, locked = [], []
-    for code, badge in BADGES.items():
+    for code, badge in BADGE_META.items():
         if code in earned_codes:
-            earned.append(f"{badge['emoji']} <b>{badge['name']}</b>\n   {badge['description']}")
+            earned.append(f"{badge['emoji']} <b>{badge['name']}</b>\n   {badge.get('description', '')}")
         else:
-            locked.append(f"🔒 <b>{badge['name']}</b>\n   {badge['hint']}")
+            locked.append(f"🔒 <b>{badge['name']}</b>\n   {badge.get('hint', '')}")
 
     text = f"{E.trophy} <b>Достижения</b>\n\n"
     if earned:

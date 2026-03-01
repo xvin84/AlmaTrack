@@ -787,7 +787,9 @@ async def _finalize_onboarding(call: CallbackQuery, state: FSMContext) -> None:
                 
             # Award initial XP and badge
             await add_xp(user_id, 50, session)
-            await award_badge(user_id, "FIRST_STEP", session)
+            if status == "working":
+                await award_badge(user_id, "FIRST_JOB", session)
+                await add_xp(user_id, 50, session)
     except Exception as e:
         import logging
         logging.getLogger(__name__).exception("Failed to create user during onboarding")
@@ -797,11 +799,14 @@ async def _finalize_onboarding(call: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await _delete(call.bot, call.message.chat.id, bot_msg_id)
 
+    badge_text = ""
+    if data.get("employment_status") == "working":
+        badge_text = f"\n{E.medal}  Бейдж <b>«Первый шаг»</b> получен!"
+
     await call.message.answer(
         f"{E.sparkles} <b>Твоя анкета отправлена на проверку!</b>\n\n"
         "━━━━━━━━━━━━━━━━\n"
-        f"{E.medal}  Бейдж <b>«Первый шаг»</b> получен!\n"
-        f"{E.star}  <b>+50 XP</b>\n"
+        f"{E.star}  <b>+50 XP</b>{badge_text}\n"
         "━━━━━━━━━━━━━━━━\n\n"
         "⏳ <i>Ожидай одобрения администратором. Пока заявка проверяется, функционал бота ограничен.</i>",
         parse_mode="HTML",

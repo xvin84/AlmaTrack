@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlmaTrack - Аналитика</title>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body id="body" class="bg-gray-50 text-gray-800 font-sans">
+    <button id="themeToggle" class="fixed bottom-6 left-6 w-14 h-14 flex items-center justify-center 
+           rounded-full shadow-xl bg-white text-yellow-500
+           transition-all duration-300 hover:scale-110 z-50 text-xl">
+        <span id="themeIcon">🌙</span>
+    </button>
+
+    <nav id="navbar" class="bg-white shadow-sm px-6 py-4 flex justify-between items-center mb-8">
+        <div class="font-bold text-xl text-blue-600">AlmaTrack</div>
+        <div class="space-x-4">
+            <a href="{{ url_for('dashboard') }}"
+                class="{% if request.endpoint == 'dashboard' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Дашборд</a>
+            <a href="{{ url_for('alumni') }}"
+                class="{% if request.endpoint == 'alumni' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Участники</a>
+            <a href="{{ url_for('requests_page') }}"
+                class="{% if request.endpoint == 'requests_page' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Заявки</a>
+            <a href="{{ url_for('events') }}"
+                class="{% if request.endpoint == 'events' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Мероприятия</a>
+            <a href="{{ url_for('analytics') }}"
+                class="{% if request.endpoint == 'analytics' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Аналитика</a>
+            {% if session.get('moderator_priority') == 1 %}
+            <a href="{{ url_for('moderators') }}"
+                class="{% if request.endpoint == 'moderators' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Модераторы</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="text-gray-500 hover:text-red-500">Выход</a>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-6 py-8">
+        <h2 class="text-2xl font-bold mb-6">Расширенная аналитика</h2>
+        <div class="bg-white p-6 rounded-lg shadow mb-8 flex gap-4 items-center">
+            <p class="text-gray-600">Фильтры (в демо-режиме):</p>
+            <select class="border rounded p-2">
+                <option>Все факультеты</option>
+            </select>
+            <select class="border rounded p-2">
+                <option>Все года</option>
+            </select>
+            <button class="bg-blue-600 text-white px-4 py-2 rounded">Применить</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow card">
+                <h4 class="text-lg font-semibold mb-4">Детальное распределение по уровням</h4>
+                <canvas id="detailsChart"></canvas>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow card">
+                <h4 class="text-lg font-semibold mb-4">Распределение по факультетам</h4>
+                <canvas id="facultiesChart"></canvas>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow card">
+                <h4 class="text-lg font-semibold mb-4">Выпускники по годам выпуска</h4>
+                <canvas id="yearsChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <script>
+        const API_URL = "http://" + window.location.hostname + ":8000/api/stats/summary";
+
+        function setDark() {
+            document.getElementById('body').classList.remove('bg-gray-50', 'text-gray-800');
+            document.getElementById('body').classList.add('bg-gray-900', 'text-gray-100');
+            document.getElementById('navbar').classList.remove('bg-white');
+            document.getElementById('navbar').classList.add('bg-gray-800');
+            document.querySelectorAll('.card').forEach(n => {
+                n.classList.remove('bg-white');
+                n.classList.add('bg-gray-800');
+            });
+            document.getElementById('themeIcon').textContent = '☀️';
+            localStorage.setItem('theme', 'dark');
+        }
+
+        function setLight() {
+            document.getElementById('body').classList.add('bg-gray-50', 'text-gray-800');
+            document.getElementById('body').classList.remove('bg-gray-900', 'text-gray-100');
+            document.getElementById('navbar').classList.add('bg-white');
+            document.getElementById('navbar').classList.remove('bg-gray-800');
+            document.querySelectorAll('.card').forEach(n => {
+                n.classList.add('bg-white');
+                n.classList.remove('bg-gray-800');
+            });
+            document.getElementById('themeIcon').textContent = '🌙';
+            localStorage.setItem('theme', 'light');
+        }
+
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            if (localStorage.getItem('theme') === 'dark') {
+                setLight();
+            } else {
+                setDark();
+            }
+        });
+
+        // Init theme
+        if (localStorage.getItem('theme') === 'dark') {
+            setDark();
+        }
+
+        async function loadCharts() {
+            try {
+                const res = await fetch(API_URL);
+                const data = await res.json();
+
+                new Chart(document.getElementById('detailsChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.charts.levels.labels,
+                        datasets: [{
+                            label: 'Студентов на уровне',
+                            data: data.charts.levels.data,
+                            backgroundColor: '#6366f1'
+                        }]
+                    }
+                });
+
+                new Chart(document.getElementById('facultiesChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.charts.faculties.labels,
+                        datasets: [{
+                            data: data.charts.faculties.data,
+                            backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#14b8a6', '#0ea5e9', '#6366f1', '#a855f7', '#ec4899']
+                        }]
+                    }
+                });
+
+                new Chart(document.getElementById('yearsChart'), {
+                    type: 'line',
+                    data: {
+                        labels: data.charts.years.labels,
+                        datasets: [{
+                            label: 'Количество выпускников',
+                            data: data.charts.years.data,
+                            borderColor: '#10b981',
+                            tension: 0.1,
+                            fill: true,
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)'
+                        }]
+                    }
+                });
+            } catch (e) { console.error(e); }
+        }
+        loadCharts();
+    </script>
+</body>
+
+</html>

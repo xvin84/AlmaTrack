@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlmaTrack - Мероприятия</title>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body id="body" class="bg-gray-50 text-gray-800 font-sans">
+    <button id="themeToggle" class="fixed bottom-6 left-6 w-14 h-14 flex items-center justify-center 
+           rounded-full shadow-xl bg-white text-yellow-500
+           transition-all duration-300 hover:scale-110 z-50 text-xl">
+        <span id="themeIcon">🌙</span>
+    </button>
+
+    <nav id="navbar" class="bg-white shadow-sm px-6 py-4 flex justify-between items-center mb-8">
+        <div class="font-bold text-xl text-blue-600">AlmaTrack</div>
+        <div class="space-x-4">
+            <a href="{{ url_for('dashboard') }}"
+                class="{% if request.endpoint == 'dashboard' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Дашборд</a>
+            <a href="{{ url_for('alumni') }}"
+                class="{% if request.endpoint == 'alumni' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Участники</a>
+            <a href="{{ url_for('requests_page') }}"
+                class="{% if request.endpoint == 'requests_page' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Заявки</a>
+            <a href="{{ url_for('events') }}"
+                class="{% if request.endpoint == 'events' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Мероприятия</a>
+            <a href="{{ url_for('analytics') }}"
+                class="{% if request.endpoint == 'analytics' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Аналитика</a>
+            {% if session.get('moderator_priority') == 1 %}
+            <a href="{{ url_for('moderators') }}"
+                class="{% if request.endpoint == 'moderators' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Модераторы</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="text-gray-500 hover:text-red-500">Выход</a>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-6 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold">Управление Мероприятиями</h2>
+            <button onclick="openCreateModal()"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                + Создать мероприятие
+            </button>
+        </div>
+
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+            <table class="w-full whitespace-nowrap">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Название</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Тип
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Дата</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Участники</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Мин. Уровень</th>
+                        <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Действия</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200" id="eventsList">
+                    <!-- Загружается через JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Модальное окно -->
+    <div id="addEventModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Новое мероприятие</h3>
+                <form id="addEventForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Название</label>
+                        <input type="text" id="ev_title" required
+                            class="mt-1 w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Описание</label>
+                        <textarea id="ev_desc"
+                            class="mt-1 w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Тип (meetup/lecture/career_fair)</label>
+                        <input type="text" id="ev_type"
+                            class="mt-1 w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Дата</label>
+                        <input type="datetime-local" id="ev_date"
+                            class="mt-1 w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Мин. уровень (1-5)</label>
+                        <input type="number" id="ev_level" value="1" min="1" max="5" required
+                            class="mt-1 w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div class="flex justify-end mt-6">
+                        <button type="button" onclick="document.getElementById('addEventModal').classList.add('hidden')"
+                            class="mr-2 px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Отмена</button>
+                        <button type="submit"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Создать</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://" + window.location.hostname + ":8000/api/events";
+
+        function setDark() {
+            document.getElementById('body').classList.remove('bg-gray-50', 'text-gray-800');
+            document.getElementById('body').classList.add('bg-gray-900', 'text-gray-100');
+            document.getElementById('navbar').classList.remove('bg-white');
+            document.getElementById('navbar').classList.add('bg-gray-800');
+            document.querySelectorAll('.card, .bg-white').forEach(n => {
+                if (n.id !== 'navbar') {
+                    n.classList.remove('bg-white');
+                    n.classList.add('bg-gray-800');
+                }
+            });
+            document.getElementById('themeIcon').textContent = '☀️';
+            localStorage.setItem('theme', 'dark');
+        }
+
+        function setLight() {
+            document.getElementById('body').classList.add('bg-gray-50', 'text-gray-800');
+            document.getElementById('body').classList.remove('bg-gray-900', 'text-gray-100');
+            document.getElementById('navbar').classList.add('bg-white');
+            document.getElementById('navbar').classList.remove('bg-gray-800');
+            document.querySelectorAll('.card, .bg-gray-800').forEach(n => {
+                if (n.id !== 'navbar') {
+                    n.classList.add('bg-white');
+                    n.classList.remove('bg-gray-800');
+                }
+            });
+            document.getElementById('themeIcon').textContent = '🌙';
+            localStorage.setItem('theme', 'light');
+        }
+
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            if (localStorage.getItem('theme') === 'dark') {
+                setLight();
+            } else {
+                setDark();
+            }
+        });
+
+        if (localStorage.getItem('theme') === 'dark') setDark();
+
+        async function loadEvents() {
+            try {
+                const res = await fetch(API_URL);
+                const events = await res.json();
+                const tbody = document.getElementById('eventsList');
+                tbody.innerHTML = '';
+                events.forEach(e => {
+                    const dateStr = e.event_date ? new Date(e.event_date).toLocaleString('ru-RU') : 'Не указана';
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="px-6 py-4 font-medium">${e.title}</td>
+                            <td class="px-6 py-4">${e.event_type || '—'}</td>
+                            <td class="px-6 py-4">${dateStr}</td>
+                            <td class="px-6 py-4 font-bold text-blue-600">${e.participants_count || 0}</td>
+                            <td class="px-6 py-4">${e.min_level}</td>
+                            <td class="px-6 py-4 text-center">
+                                <button onclick='editEvent(${JSON.stringify(e)})' class="text-blue-500 hover:text-blue-700 text-sm mr-3">Изменить</button>
+                                <button onclick="deleteEvent(${e.id})" class="text-red-500 hover:text-red-700 text-sm">Удалить</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function deleteEvent(id) {
+            if (!confirm('Точно удалить?')) return;
+            try {
+                await fetch(API_URL + '/' + id, { method: 'DELETE' });
+                loadEvents();
+            } catch (e) { console.error(e); }
+        }
+
+        let currentEditId = null;
+
+        function editEvent(e) {
+            document.getElementById('ev_title').value = e.title;
+            document.getElementById('ev_desc').value = e.description || '';
+            document.getElementById('ev_type').value = e.event_type || '';
+            if (e.event_date) {
+                // Remove the 'Z' to insert into datetime-local
+                let str = new Date(e.event_date).toISOString();
+                document.getElementById('ev_date').value = str.slice(0, 16);
+            } else {
+                document.getElementById('ev_date').value = '';
+            }
+            document.getElementById('ev_level').value = e.min_level;
+
+            currentEditId = e.id;
+            document.querySelector('#addEventModal h3').textContent = "Редактирование мероприятия";
+            document.querySelector('#addEventForm button[type="submit"]').textContent = "Сохранить";
+            document.getElementById('addEventModal').classList.remove('hidden');
+        }
+
+        function openCreateModal() {
+            currentEditId = null;
+            document.getElementById('addEventForm').reset();
+            document.querySelector('#addEventModal h3').textContent = "Новое мероприятие";
+            document.querySelector('#addEventForm button[type="submit"]').textContent = "Создать";
+            document.getElementById('addEventModal').classList.remove('hidden');
+        }
+
+        document.getElementById('addEventForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const dateVal = document.getElementById('ev_date').value;
+            const payload = {
+                title: document.getElementById('ev_title').value,
+                description: document.getElementById('ev_desc').value,
+                event_type: document.getElementById('ev_type').value,
+                min_level: parseInt(document.getElementById('ev_level').value),
+            }
+            if (dateVal) {
+                payload.event_date = new Date(dateVal).toISOString();
+            }
+
+            try {
+                let url = API_URL + "/";
+                let method = 'POST';
+                if (currentEditId) {
+                    url = API_URL + "/" + currentEditId;
+                    method = 'PUT';
+                }
+
+                await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                document.getElementById('addEventModal').classList.add('hidden');
+                document.getElementById('addEventForm').reset();
+                currentEditId = null;
+                loadEvents();
+            } catch (err) { console.error(err); }
+        });
+
+        loadEvents();
+    </script>
+</body>
+
+</html>

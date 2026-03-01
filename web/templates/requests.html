@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AlmaTrack - Заявки</title>
+                <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body,
@@ -50,11 +53,19 @@
     <nav id="navbar" class="bg-white shadow-sm px-6 py-4 flex justify-between items-center mb-8">
         <div class="font-bold text-xl text-blue-600">AlmaTrack</div>
         <div class="space-x-4">
-            <a href="{{ url_for('dashboard') }}" class="text-gray-500 hover:text-gray-800">Дашборд</a>
-            <a href="{{ url_for('alumni') }}" class="text-gray-500 hover:text-gray-800">Участники</a>
-            <a href="{{ url_for('requests_page') }}" class="text-blue-600 font-medium">Заявки</a>
+            <a href="{{ url_for('dashboard') }}"
+                class="{% if request.endpoint == 'dashboard' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Дашборд</a>
+            <a href="{{ url_for('alumni') }}"
+                class="{% if request.endpoint == 'alumni' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Участники</a>
+            <a href="{{ url_for('requests_page') }}"
+                class="{% if request.endpoint == 'requests_page' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Заявки</a>
+            <a href="{{ url_for('events') }}"
+                class="{% if request.endpoint == 'events' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Мероприятия</a>
+            <a href="{{ url_for('analytics') }}"
+                class="{% if request.endpoint == 'analytics' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Аналитика</a>
             {% if session.get('moderator_priority') == 1 %}
-            <a href="{{ url_for('moderators') }}" class="text-gray-500 hover:text-gray-800">Модераторы</a>
+            <a href="{{ url_for('moderators') }}"
+                class="{% if request.endpoint == 'moderators' %}text-blue-600 font-medium{% else %}text-gray-500 hover:text-gray-800:text-gray-200{% endif %}">Модераторы</a>
             {% endif %}
             <a href="{{ url_for('logout') }}" class="text-gray-500 hover:text-red-500">Выход</a>
         </div>
@@ -141,67 +152,118 @@
     </div>
 
     <script>
-        const body = document.getElementById("body");
-        const navbar = document.getElementById("navbar");
-        const cards = document.querySelectorAll(".card");
-        const table = document.getElementById("requestsTable");
-        const tableHead = document.getElementById("tableHead");
-        const inputs = document.querySelectorAll("input");
+
+        function getRows() {
+            const table = document.querySelector("table");
+            if (!table) return [];
+            return table.querySelectorAll("tbody tr:not(#emptyRow)");
+        }
+        function getCards() {
+            return document.querySelectorAll(".card");
+        }
+        function getInputs() {
+            return document.querySelectorAll("input");
+        }
+
         const button = document.getElementById("themeToggle");
         const icon = document.getElementById("themeIcon");
 
-        function getRows() {
-            return table.querySelectorAll("tbody tr:not(#emptyRow)");
-        }
-        function getButtons() {
-            return table.querySelectorAll("button");
-        }
+        if (button && icon) {
+            function setDark() {
+                document.body.style.backgroundColor = "#111827";
+                document.body.style.color = "#f3f4f6";
+                const navbar = document.getElementById("navbar");
+                if(navbar) navbar.style.backgroundColor = "#1f2937";
+                button.style.backgroundColor = "#1f2937";
+                button.style.color = "#facc15";
+                getCards().forEach(card => { card.style.backgroundColor = "#1f2937"; card.style.color = "#f3f4f6"; });
+                
+                const table = document.querySelector("table");
+                if (table) table.style.backgroundColor = "#1f2937";
+                const thead = document.querySelector("thead");
+                if (thead) {
+                    thead.style.backgroundColor = "#1f2937";
+                    thead.style.color = "#f3f4f6";
+                }
+                getRows().forEach(r => { r.style.color = "#f3f4f6"; });
+                getInputs().forEach(input => { input.style.backgroundColor = "#374151"; input.style.color = "#f3f4f6"; input.style.borderColor = "#6b7280"; });
+                icon.textContent = "☀️";
+                localStorage.setItem("theme", "dark");
+                if (typeof Chart !== 'undefined') {
+                    Chart.defaults.color = '#9ca3af';
+                    if (Chart.defaults.scale) {
+                        Chart.defaults.scale.grid.color = '#374151';
+                    }
+                    updateCharts();
+                }
+            }
 
-        function setDark() {
-            body.style.backgroundColor = "#111827";
-            body.style.color = "#f3f4f6";
-            navbar.style.backgroundColor = "#1f2937";
-            button.style.backgroundColor = "#1f2937";
-            button.style.color = "#facc15";
-            cards.forEach(card => { card.style.backgroundColor = "#1f2937"; card.style.color = "#f3f4f6"; });
-            table.style.backgroundColor = "#1f2937";
-            tableHead.style.backgroundColor = "#1f2937";
-            tableHead.style.color = "#f3f4f6";
-            getRows().forEach(r => { r.style.color = "#f3f4f6"; });
-            inputs.forEach(input => { input.style.backgroundColor = "#374151"; input.style.color = "#f3f4f6"; input.style.borderColor = "#6b7280"; });
-            icon.textContent = "☀️";
-            localStorage.setItem("theme", "dark");
-        }
+            function setLight() {
+                document.body.style.backgroundColor = "#f9fafb";
+                document.body.style.color = "#111827";
+                const navbar = document.getElementById("navbar");
+                if(navbar) navbar.style.backgroundColor = "#ffffff";
+                button.style.backgroundColor = "#ffffff";
+                button.style.color = "#111827";
+                getCards().forEach(card => { card.style.backgroundColor = "#ffffff"; card.style.color = "#111827"; });
+                
+                const table = document.querySelector("table");
+                if (table) table.style.backgroundColor = "#ffffff";
+                const thead = document.querySelector("thead");
+                if (thead) {
+                    thead.style.backgroundColor = "#f9fafb";
+                    thead.style.color = "#6b7280";
+                }
+                getRows().forEach(r => { r.style.color = "#111827"; });
+                getInputs().forEach(input => { input.style.backgroundColor = "#ffffff"; input.style.color = "#111827"; input.style.borderColor = "#d1d5db"; });
+                
+                icon.textContent = "🌙";
+                localStorage.setItem("theme", "light");
+                if (typeof Chart !== 'undefined') {
+                    Chart.defaults.color = '#6b7280';
+                    if (Chart.defaults.scale) {
+                        Chart.defaults.scale.grid.color = '#e5e7eb';
+                    }
+                    updateCharts();
+                }
+            }
 
-        function setLight() {
-            body.style.backgroundColor = "#f9fafb";
-            body.style.color = "#111827";
-            navbar.style.backgroundColor = "#ffffff";
-            button.style.backgroundColor = "#ffffff";
-            button.style.color = "#111827";
-            cards.forEach(card => { card.style.backgroundColor = "#ffffff"; card.style.color = "#111827"; });
-            table.style.backgroundColor = "#ffffff";
-            tableHead.style.backgroundColor = "#f9fafb";
-            tableHead.style.color = "#6b7280";
-            getRows().forEach(r => { r.style.color = "#111827"; });
-            inputs.forEach(input => { input.style.backgroundColor = "#ffffff"; input.style.color = "#111827"; input.style.borderColor = "#d1d5db"; });
-            icon.textContent = "🌙";
-            localStorage.setItem("theme", "light");
-        }
+            function updateCharts() {
+                if (typeof Chart !== 'undefined') {
+                    for (let id in Chart.instances) {
+                        Chart.instances[id].update();
+                    }
+                }
+            }
 
-        if (localStorage.getItem("theme") === "dark") { setDark(); } else { setLight(); }
+            if (localStorage.getItem("theme") === "dark") {
+                setDark();
+            } else {
+                setLight();
+            }
 
-        button.addEventListener("click", () => {
-            if (localStorage.getItem("theme") === "dark") { setLight(); } else { setDark(); }
-        });
-
-        document.getElementById('searchInput').addEventListener('input', function () {
-            let filter = this.value.toLowerCase();
-            getRows().forEach(row => {
-                let text = row.textContent.toLowerCase();
-                row.style.display = text.includes(filter) ? '' : 'none';
+            button.addEventListener("click", () => {
+                if (localStorage.getItem("theme") === "dark") {
+                    setLight();
+                } else {
+                    setDark();
+                }
             });
-        });
+        }
+
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', function () {
+                let filter = this.value.toLowerCase();
+                const table = document.getElementById("requestsTable");
+                if (!table) return;
+                const rows = table.querySelectorAll("tbody tr:not(#emptyRow)");
+                rows.forEach(row => {
+                    let text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(filter) ? '' : 'none';
+                });
+            });
+        }
 
         async function handleDecision(action, userId) {
             try {
@@ -258,6 +320,7 @@
             tbody.innerHTML = "";
             rowsArray.forEach(row => tbody.appendChild(row));
         }
+
         // Real-time polling
         setInterval(async () => {
             try {
